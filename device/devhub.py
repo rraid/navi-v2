@@ -59,8 +59,7 @@ class ArduinoListener(Thread):
 
   def run(self):
     while not self.stopped():
-      pass
-    time.sleep(0.1) # 10 MHz refresh
+      time.sleep(0.1) # 10 MHz refresh
 
   def stop(self):
     self._stop_event.set()
@@ -70,6 +69,7 @@ class ArduinoListener(Thread):
 
 def init():
   arduinoDevice = ArduinoListener()
+  arduinoDevice.start()
   rospy.init_node("DeviceListener", anonymous=True)
   rospy.subscriber("/lidar/scan", \
       LaserScan, lidarCallbackHandler)
@@ -79,3 +79,4 @@ def init():
 
 def stop():
   arduinoDevice.stop()
+  arduinoDevice.join()
