@@ -1,35 +1,37 @@
 import numpy as np
-import pyserial
+import serial
 import rospy as ros
 from std_msgs.msg import Float32MultiArray
-from sensor_msgs import LaserScan
+from sensor_msgs.msg import LaserScan
 from threading import Thread, Event
 import time
 
-# Globals for lidar and zed access
+# Globals
 lidarReadings = []
 depthColumns = []
+sonarReadings = [0,0,0,0,0,0,0,0,0]
+latitude = None
+longitude = None
+
+motorVelocity = [0,0]
+
 arduinoDevice = None
 
+
 def getSonarReadings():
-  ##### CODE HERE #####
-  raise NotImplementedError
-  return {}
+  return sonarReadings
+
+def getGPSLocation():
+  return (latitude, longitude)
 
 def getLidarReadings():
-  # Complete code in lidarCallbackHandler()
   global lidarReadings
+  
   return lidarReadings
 
 def getZEDDepthColumns():
-  # Complete code in zedCallbackHandler()
   global depthColumns
   return depthColumns
-
-def getGPSLocation():
-  ##### CODE HERE #####
-  raise NotImplementedError
-  return (0.0, 0.0)
 
 def getButtonReadings():
   ##### CODE HERE #####
@@ -37,30 +39,61 @@ def getButtonReadings():
   return {}
 
 def setMotorVelocity(left, right):
-  ##### CODE HERE #####
-  raise NotImplementedError
+  motorVelocity = [left,right]
 
 def lidarCallbackHandler(scan):
-  ##### CODE HERE #####
   global lidarReadings
-  raise NotImplementedError
+  lidarReadings = scan.ranges
 
 def zedCallbackHandler(frame):
-  ##### CODE HERE #####
   global depthColumns
-  raise NotImplementedError
+  depthColumns = frame.data
 
 class ArduinoListener(Thread):
-  ##### Edit this class #####
-  def __init__(self, idList):
+
+  #def __init__(self, idList):
+  def __init__(self):
+    print "Thread Started"
     Thread.__init__(self)
-    self.idList = idList
+    #self.idList = idList
     self._stop_event = Event()
+    self.arduino = serial.Serial('/dev/ttyACM0',9600)
 
   def run(self):
     while not self.stopped():
+      self.readSerial()
+      #self.writeSerial()
       time.sleep(0.1) # 10 MHz refresh
 
+  def readSerial(self):
+    global sonarReadings
+    global latitude
+    global longitude
+    
+    if self.arduino.in_waiting > 0:
+      buff = None;
+      buff = self.arduino.read(self.arduino.in_waiting)
+      prev = 1
+      count = 0
+      if buff[0] == '[':
+        for ptr in range(len(buff)):
+          if buff[ptr] == ',' or buff[ptr] == ']':
+            if count < 9:
+              sonarReadings[count] = float(buff[prev:ptr])
+              count += 1
+              prev = ptr + 1
+            elif count == 9:
+              latitude = float(buff[prev:ptr])
+              count += 1
+              prev = ptr + 1
+            else:
+              longitude = float(buff[prev:ptr])
+            
+  def writeSerial(self):
+    global motorVelocity
+    writeBuff = "[" + motorVelocity + "]\n"
+    self.arduino.write(writeBuff)
+    
   def stop(self):
     self._stop_event.set()
 
@@ -70,12 +103,12 @@ class ArduinoListener(Thread):
 def init():
   arduinoDevice = ArduinoListener()
   arduinoDevice.start()
-  rospy.init_node("DeviceListener", anonymous=True)
-  rospy.subscriber("/lidar/scan", \
+  ros.init_node("DeviceListener", anonymous=True)
+  ros.Subscriber("/lidar/scan", 
       LaserScan, lidarCallbackHandler)
-  rospy.subscriber("/zed/depth/depth_registered", \
+  ros.Subscriber("/zed/depth/depth_registered", 
       Float32MultiArray, zedCallbackHandler)
-  rospy.spin()
+  ros.spin()
 
 def stop():
   arduinoDevice.stop()

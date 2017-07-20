@@ -2,6 +2,7 @@ import sys
 sys.path.append("../device/")
 import devhub
 import signal
+import time
 
 testMotors = False
 stopTest = False
@@ -18,7 +19,8 @@ if __name__ == "__main__":
     print "Lidar:", devhub.getLidarReadings()
     print "Sonar:", devhub.getZEDDepthColumns()
     print "GPS:", devhub.getGPSLocation()
-    print "Buttons:", devhub.getButtonReadings()
+    time.sleep(0.1) # 10 MHz refresh
+    #print "Buttons:", devhub.getButtonReadings()
     if testMotors:
       devhub.setMotorVelocity(0, 0)
   devhub.stop()
