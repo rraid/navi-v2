@@ -2,9 +2,13 @@ import numpy as np
 import serial
 import rospy as ros
 from std_msgs.msg import Float32MultiArray
+from sensor_msgs.msg import Image
 from sensor_msgs.msg import LaserScan
 from threading import Thread, Event
 import time
+import struct
+import cv2
+import sys
 
 # Globals
 lidarReadings = []
@@ -17,6 +21,8 @@ motorVelocity = [0,0]
 
 arduinoDevice = None
 
+def bytes4toFloat32(bytes):
+  return struct.unpack('>f', ''.join(chr(i) for i in bytes))[0]
 
 def getSonarReadings():
   return sonarReadings
@@ -47,7 +53,15 @@ def lidarCallbackHandler(scan):
 
 def zedCallbackHandler(frame):
   global depthColumns
-  depthColumns = frame.data
+  depthImage = np.fromstring(frame.data, dtype=np.float32)
+  cv2.imshow('img',np.reshape(depthImage,(frame.height,frame.width)))
+  cv2.waitKey(30)
+  #dataMid = len(depthImage)/2
+  #print frame.data[0:10]
+  #time.sleep(10)
+  #subImage = frame.data[dataMid-50:dataMid+50,:]
+  #depthColumns = np.minimum(subImage, axis=0)
+
 
 class ArduinoListener(Thread):
 
@@ -56,11 +70,11 @@ class ArduinoListener(Thread):
     print "Thread Started"
     Thread.__init__(self)
     #self.idList = idList
-    self._stop_event = Event()
     self.arduino = serial.Serial('/dev/ttyACM0',9600)
+    self.stopstate = False
 
   def run(self):
-    while not self.stopped():
+    while not self.stopstate:
       self.readSerial()
       #self.writeSerial()
       time.sleep(0.1) # 10 MHz refresh
@@ -95,21 +109,25 @@ class ArduinoListener(Thread):
     self.arduino.write(writeBuff)
     
   def stop(self):
-    self._stop_event.set()
+    self.stopstate = True
 
   def stopped(self):
-    return self._stop_event.is_set()
+    return self.stopstate
 
 def init():
-  arduinoDevice = ArduinoListener()
-  arduinoDevice.start()
+  #arduinoDevice = ArduinoListener()
+  #arduinoDevice.start()
   ros.init_node("DeviceListener", anonymous=True)
-  ros.Subscriber("/lidar/scan", 
-      LaserScan, lidarCallbackHandler)
+  #ros.Subscriber("/lidar/scan", 
+  #    LaserScan, lidarCallbackHandler)
   ros.Subscriber("/zed/depth/depth_registered", 
-      Float32MultiArray, zedCallbackHandler)
+      Image, zedCallbackHandler)
   ros.spin()
 
 def stop():
+  print "STOP SIGNAL RECVD"
   arduinoDevice.stop()
-  arduinoDevice.join()
+  #arduinoDevice.join()
+  time.sleep(1)
+  print "###########################################################"
+  sys.exit()
