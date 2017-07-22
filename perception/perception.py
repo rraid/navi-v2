@@ -62,6 +62,9 @@ class Map():
     # COMPLETE THIS METHOD
     return np.array([[]])
 
+  def getDistribution(self):
+    return np.array([[]])
+
 class ObjectDetector():
   def __init__(self):
     pass
