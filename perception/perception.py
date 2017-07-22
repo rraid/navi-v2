@@ -1,5 +1,13 @@
+import sys
+sys.path.append("../device/")
+#import devhub
+import math
 import numpy as np
 from scipy.signal import convolve2d
+
+#Top four sonars from left to right followed by
+#bottom five sonars from left to right
+sonarAngle = np.array([-20, -10 , 10, -20, -20, -10, 0, 10, 20])
 
 def getSonarDistribution(sonarValues):
   sonarDistx = np.zeros((9,100))
