@@ -2,6 +2,8 @@ import math
 import numpy as np
 from scipy.signal import convolve2d
 from PIL, import Image, ImageDraw
+import chilipy
+import cv2
 
 #Top four sonars from left to right followed by
 #bottom five sonars from left to right
