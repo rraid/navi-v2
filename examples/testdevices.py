@@ -9,7 +9,6 @@ stopTest = False
 
 def stopsigHandler(signo, frame):
   stopTest = True
-  print "RECIEVED CTRL-C SIGNAL"
   devhub.stop()
   sys.exit(0)
 
@@ -20,7 +19,7 @@ if __name__ == "__main__":
   while not stopTest:
     print "Sonar:", devhub.getSonarReadings()
     print "Lidar:", devhub.getLidarReadings()
-    print "Sonar:", devhub.getZEDDepthColumns()
+    print "Zed:", devhub.getZEDDepthColumns()
     print "GPS:", devhub.getGPSLocation()
     time.sleep(0.1) # 10 MHz refresh
     #print "Buttons:", devhub.getButtonReadings()

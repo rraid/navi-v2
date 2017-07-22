@@ -1,7 +1,6 @@
 import numpy as np
 import serial
 import rospy as ros
-from std_msgs.msg import Float32MultiArray
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import LaserScan
 from threading import Thread, Event
@@ -47,19 +46,17 @@ def setMotorVelocity(left, right):
 
 def lidarCallbackHandler(scan):
   global lidarReadings
-  lidarReadings = scan.ranges
-  print lidarReadings
+  lidarReadings = len(scan.intensities)
+
 
 def zedCallbackHandler(frame):
   global depthColumns
-  depthImage = np.fromstring(frame.data, dtype=np.float32)
-  cv2.imshow('img',np.reshape(depthImage,(frame.height,frame.width)))
-  cv2.waitKey(30)
-  #dataMid = len(depthImage)/2
-  #print frame.data[0:10]
-  #time.sleep(10)
-  #subImage = frame.data[dataMid-50:dataMid+50,:]
-  #depthColumns = np.minimum(subImage, axis=0)
+  depthImage = np.reshape(np.fromstring(frame.data, dtype=np.float32),(frame.height,frame.width))
+  dataMid = frame.height/2
+  subImage = depthImage[dataMid-50:dataMid+50,:]
+  depthColumns = np.amin(subImage, axis=0)
+  #cv2.imshow('img',depthColumns)
+  #cv2.waitKey(30)
 
 
 class ArduinoListener(Thread):
@@ -116,7 +113,7 @@ class ROSListener(Thread):
     print "Ros thread Started"
     Thread.__init__(self)
     ros.init_node("DeviceListener", anonymous=True)
-    ros.Subscriber("/lidar/scan", 
+    ros.Subscriber("/scan", 
         LaserScan, lidarCallbackHandler)
     ros.Subscriber("/zed/depth/depth_registered", 
         Image, zedCallbackHandler)
@@ -126,15 +123,19 @@ class ROSListener(Thread):
       ros.spin()
 
 def init():
-  #arduinoDevice = ArduinoListener()
-  #arduinoDevice.start()
+  global arduinoDevice
+  global rosReader
+  arduinoDevice = ArduinoListener()
+  arduinoDevice.start()
   rosReader = ROSListener()
   rosReader.start()
 
 def stop():
+  global arduinoDevice
+  global rosReader
   print "STOP SIGNAL RECVD"
-  #arduinoDevice.stop()
-  #arduinoDevice.join()
+  arduinoDevice.stop()
+  arduinoDevice.join()
   ros.signal_shutdown("Ending Process")
   time.sleep(1)
   sys.exit()
