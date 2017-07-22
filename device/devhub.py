@@ -15,6 +15,7 @@ depthColumns = []
 sonarReadings = [0,0,0,0,0,0,0,0,0]
 latitude = None
 longitude = None
+compassReading = None
 
 motorVelocity = [0,0]
 
@@ -36,10 +37,9 @@ def getZEDDepthColumns():
   global depthColumns
   return depthColumns
 
-def getButtonReadings():
-  ##### CODE HERE #####
-  raise NotImplementedError
-  return {}
+def getCompassOrientation():
+  global compassReading
+  return compassReading
 
 def setMotorVelocity(left, right):
   motorVelocity = [left,right]
