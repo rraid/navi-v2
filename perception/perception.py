@@ -43,6 +43,9 @@ class Localizer():
     # COMPLETE THIS METHOD
     return []
 
+  def getDistribution(self):
+    return np.array([[]])
+
 class Map():
   def __init__(self):
     pass
