@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.signal import convolve2d
 
+shape = (500, 500)
+
 def getSonarDistribution(sonarValues):
   # COMPLETE THIS METHOD
   return np.array([[]])
@@ -14,8 +16,8 @@ def getZEDDistribution(columns):
   return np.array([[]])
 
 def getGPSDistribution(x, y):
+  global shape
   # TODO: account for longitude, latitude offset
-  shape = (500, 500)
 
   if x <= 0 or x > shape[0] or y < 0 or y >= shape[1]:
     print "Error: GPS distribution out of bounds"
@@ -75,15 +77,31 @@ class Localizer():
 
 class Map():
   def __init__(self):
-    pass
+    self.x_inc = 0.5
+    self.x_meters = 0
+    self.y_inc = 0.5
+    self.y_meters = 0
+    self.theta_inc = 10
+    self.n_theta = 36
+    self.grid = None
 
   def initializeEmpty(self, x_meters, y_meters):
-    # COMPLETE THIS METHOD
-    pass
+    self.x_meters = x_meters
+    self.y_meters = y_meters
+    self.grid = np.zeros((y_meters, x_meters, 36), dtype=np.float32)
 
   def updateCollisions(self, x, y, collisions):
-    # COMPLETE THIS METHOD
-    pass
+    # construct a radial ordering of pts
+    X = collisions[:, 0] - x
+    Y = collisions[:, 1] - y
+    theta = np.arctan2(Y, X)
+    theta = theta.reshape(theta, (theta.shape[0], 1))
+    P = list(np.concatenate((collisions, theta), axis=1))
+    P = sorted(P, key=lambda s: s[2])
+    P += np.array((x, y, 0))
+    # find out if point is inside the specified polygon
+    polygon = list(zip(list(P[:, 0]), list(P[:, 1])))
+    return 
 
   def predict(self):
     # COMPLETE THIS METHOD
