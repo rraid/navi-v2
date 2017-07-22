@@ -7,8 +7,11 @@ import time
 testMotors = False
 stopTest = False
 
-def stopsigHandler(signo, _):
+def stopsigHandler(signo, frame):
   stopTest = True
+  print "RECIEVED CTRL-C SIGNAL"
+  devhub.stop()
+  sys.exit(0)
 
 if __name__ == "__main__":
   signal.signal(signal.SIGINT, stopsigHandler)
@@ -23,4 +26,4 @@ if __name__ == "__main__":
     #print "Buttons:", devhub.getButtonReadings()
     if testMotors:
       devhub.setMotorVelocity(0, 0)
-  devhub.stop()
+

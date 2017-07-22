@@ -20,9 +20,7 @@ longitude = None
 motorVelocity = [0,0]
 
 arduinoDevice = None
-
-def bytes4toFloat32(bytes):
-  return struct.unpack('>f', ''.join(chr(i) for i in bytes))[0]
+rosReader = None
 
 def getSonarReadings():
   return sonarReadings
@@ -50,6 +48,7 @@ def setMotorVelocity(left, right):
 def lidarCallbackHandler(scan):
   global lidarReadings
   lidarReadings = scan.ranges
+  print lidarReadings
 
 def zedCallbackHandler(frame):
   global depthColumns
@@ -67,7 +66,7 @@ class ArduinoListener(Thread):
 
   #def __init__(self, idList):
   def __init__(self):
-    print "Thread Started"
+    print "Ard. thread Started"
     Thread.__init__(self)
     #self.idList = idList
     self.arduino = serial.Serial('/dev/ttyACM0',9600)
@@ -111,23 +110,31 @@ class ArduinoListener(Thread):
   def stop(self):
     self.stopstate = True
 
-  def stopped(self):
-    return self.stopstate
+class ROSListener(Thread):
+
+  def __init__(self):
+    print "Ros thread Started"
+    Thread.__init__(self)
+    ros.init_node("DeviceListener", anonymous=True)
+    ros.Subscriber("/lidar/scan", 
+        LaserScan, lidarCallbackHandler)
+    ros.Subscriber("/zed/depth/depth_registered", 
+        Image, zedCallbackHandler)
+
+  def run(self):
+    while not ros.is_shutdown():
+      ros.spin()
 
 def init():
   #arduinoDevice = ArduinoListener()
   #arduinoDevice.start()
-  ros.init_node("DeviceListener", anonymous=True)
-  #ros.Subscriber("/lidar/scan", 
-  #    LaserScan, lidarCallbackHandler)
-  ros.Subscriber("/zed/depth/depth_registered", 
-      Image, zedCallbackHandler)
-  ros.spin()
+  rosReader = ROSListener()
+  rosReader.start()
 
 def stop():
   print "STOP SIGNAL RECVD"
-  arduinoDevice.stop()
+  #arduinoDevice.stop()
   #arduinoDevice.join()
+  ros.signal_shutdown("Ending Process")
   time.sleep(1)
-  print "###########################################################"
   sys.exit()
