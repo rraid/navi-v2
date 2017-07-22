@@ -144,41 +144,24 @@ class Map():
     self.theta_inc = 10
     self.n_theta = 36
     self.grid = None
+    self.timeUpdated = time.time()
 
   def initializeEmpty(self, x_meters, y_meters):
     self.x_meters = x_meters
     self.y_meters = y_meters
-    self.grid = np.zeros((y_meters, x_meters, 36), dtype=np.float32)
+    self.grid = np.zeros((y_meters * 2, x_meters * 2, 36), dtype=np.float32)
 
   def updateCollisions(self, x, y, collisions):
-    # grab collision points
-    C = np.argwhere(collisions > 0.3)
-    X = C[:, 0] - x
-    Y = C[:, 1] - y
-
-    # construct a radial ordering of pts
-    theta = np.arctan2(Y, X)
-    theta = theta.reshape(theta, (theta.shape[0], 1))
-    P = list(np.concatenate((X, Y, theta), axis=1))
-    P = sorted(P, key=lambda s: s[2])
-    P += np.array((x, y, 0))
-
-    # lower the probability of all points in the specified polygon
-    polygon = list(zip(list(P[:, 0]), list(P[:, 1])))
-    img = Image.new("L", shape, 0)
-    ImageDraw.Draw(img).polygon(polygon, outline=1, fill=1)
-    mask = np.array(img).astype(np.float32) + 1.0
-    self.grid /= mask
-
+    assert(type(self.grid) != type(None))
+    # just lower the probability of all other collisions in the space
+    dt = time.time() - self.timeUpdated
+    self.timeUpdated = time.time()
+    self.grid *= math.exp(0.9 * dt)
     # add collisions
     self.grid = np.clip(self.grid + collisions, 0.0, 1.0)
 
   def predict(self):
-    # COMPLETE THIS METHOD
-    return np.array([[]])
-
-  def getDistribution(self):
-    return np.array([[]])
+    return self.grid
 
 class ObjectDetector():
   def __init__(self):
