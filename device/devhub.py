@@ -108,7 +108,6 @@ class ArduinoListener(Thread):
     self.stopstate = True
 
 class ROSListener(Thread):
-
   def __init__(self):
     print "Ros thread Started"
     Thread.__init__(self)
@@ -119,8 +118,7 @@ class ROSListener(Thread):
         Image, zedCallbackHandler)
 
   def run(self):
-    while not ros.is_shutdown():
-      ros.spin()
+    ros.spin() # blocks already
 
 def init():
   global arduinoDevice
@@ -133,7 +131,6 @@ def init():
 def stop():
   global arduinoDevice
   global rosReader
-  print "STOP SIGNAL RECVD"
   arduinoDevice.stop()
   arduinoDevice.join()
   ros.signal_shutdown("Ending Process")
