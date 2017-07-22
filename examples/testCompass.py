@@ -1,7 +1,6 @@
 import sys
 sys.path.append("../perception/")
 import perception
-import cv2
 import signal
 
 stopTest = False
@@ -14,6 +13,4 @@ if __name__ == "__main__":
   print "Press Ctrl+C to stop"
 
   while not stopTest:
-    cv2.imshow("GPS", perception.getGPSDistribution(124, 150) * 255.0)
-
-    cv2.waitKey(30)
+    print perception.getCompassDistribution(360)
