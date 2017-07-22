@@ -19,6 +19,10 @@ def getGPSDistribution(x, y):
   # COMPLETE THIS METHOD
   return np.array([[]])
 
+def getCompassDistribution(degrees):
+  # COMPLETE THIS METHOD
+  return np.array([[]])
+
 class Localizer():
   def __init__(self):
     pass
