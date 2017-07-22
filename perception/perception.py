@@ -1,23 +1,83 @@
+import math
 import numpy as np
 from scipy.signal import convolve2d
+from PIL, import Image, ImageDraw
 
-shape = (500, 500)
+#Top four sonars from left to right followed by
+#bottom five sonars from left to right
+sonarAngle = np.array([-20, -10 , 10, -20, -20, -10, 0, 10, 20])
 
 def getSonarDistribution(sonarValues):
-  # COMPLETE THIS METHOD
-  return np.array([[]])
+  sonarDistx = np.zeros((9,100))
+  sonarDisty = np.zeros((9,100))
+  relativeAngle = np.linspace(-7.5,7.5,100)
+  for i in range(9):
+    for distribution in range(100):
+      sonarDistx[i,distribution] =int(math.cos(math.radians(sonarAngle[i] + relativeAngle[distribution]))* sonarValues[i])
+      sonarDisty[i,distribution] =int(math.sin(math.radians(sonarAngle[i] + relativeAngle[distribution]))* sonarValues[i])
+
+  sizex = abs(np.amax(sonarDistx)) + abs(np.amin(sonarDistx))
+  sizey = abs(np.amax(sonarDisty)) + abs(np.amin(sonarDisty))
+  if sizex == 0:
+      sizex = 1
+  if sizey== 0:
+      sizey = 1
+  if sizex > 0 and sizey>0:
+
+    sonarArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
+  for sonar in range(9):
+    for i in range(100):
+        sonarArray[sizex + sonarDistx[sonar,i], sizey + sonarDisty[sonar,i]] = 1
+  return sonarArray
 
 def getLidarDistribution(pts):
-  # COMPLETE THIS METHOD
-  return np.array([[]])
+  size = len(pts)
+  lidarDist = np.zeros((2,size))
+  angleDist = np.linspace(-135,135,size)
+  for i in range(size):
+    lidarDist[0,i] = int(math.cos(math.radians(angleDist[i])) * pts[i])
+    lidarDist[1,i] = int(math.sin(math.radians(angleDist[i])) * pts[i])
+
+  sizex = abs(np.amax(lidarDist[0,:])) + abs(np.amin(lidarDist[0,:]))
+  sizey = abs(np.amax(lidarDist[1,:])) + abs(np.amin(lidarDist[1,:]))
+  if sizex == 0:
+      sizex = 1
+  if sizey== 0:
+      sizey = 1
+  if sizex > 0 and sizey>0:
+
+    lidarArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
+  for i in range(size):
+    lidarArray[ sizex + lidarDist[0,i],sizey + lidarDist[1,i]] = 1
+  return lidarArray
+rn np.array([[]])
 
 def getZEDDistribution(columns):
-  # COMPLETE THIS METHOD
-  return np.array([[]])
+  size = len(columns)
+  zedDist = np.zeros((2,size))
+  angleDist = np.linspace(-55,55,size)
+  for i in range(size):
+    zedDist[0,i] = int(math.cos(math.radians(angleDist[i])) * columns[i])
+    zedDist[1,i] = int(math.sin(math.radians(angleDist[i])) * columns[i])
+
+  sizex = abs(np.amax(zedDist[0,:])) + abs(np.amin(zedDist[0,:]))
+  sizey = abs(np.amax(zedDist[1,:])) + abs(np.amin(zedDist[1,:]))
+  if sizex == 0:
+      sizex = 1
+  if sizey== 0:
+      sizey = 1
+  if sizex > 0 and sizey>0:
+
+    zedArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
+  for i in range(size):
+    zedArray[ sizex + zedDist[0,i],sizey + zedDist[1,i]] = 1
+  return zedArray
 
 def getGPSDistribution(x, y):
-  global shape
-  # TODO: account for longitude, latitude offset
+  shape = [500, 500]
+  offset = [0, 0] # lat, long
+  x -= offset[0]
+  y -= offset[1]
 
   if x <= 0 or x > shape[0] or y < 0 or y >= shape[1]:
     print "Error: GPS distribution out of bounds"
@@ -91,17 +151,27 @@ class Map():
     self.grid = np.zeros((y_meters, x_meters, 36), dtype=np.float32)
 
   def updateCollisions(self, x, y, collisions):
+    # grab collision points
+    C = np.argwhere(collisions > 0.3)
+    X = C[:, 0] - x
+    Y = C[:, 1] - y
+
     # construct a radial ordering of pts
-    X = collisions[:, 0] - x
-    Y = collisions[:, 1] - y
     theta = np.arctan2(Y, X)
     theta = theta.reshape(theta, (theta.shape[0], 1))
-    P = list(np.concatenate((collisions, theta), axis=1))
+    P = list(np.concatenate((X, Y, theta), axis=1))
     P = sorted(P, key=lambda s: s[2])
     P += np.array((x, y, 0))
-    # find out if point is inside the specified polygon
+
+    # lower the probability of all points in the specified polygon
     polygon = list(zip(list(P[:, 0]), list(P[:, 1])))
-    return 
+    img = Image.new("L", shape, 0)
+    ImageDraw.Draw(img).polygon(polygon, outline=1, fill=1)
+    mask = np.array(img).astype(np.float32) + 1.0
+    self.grid /= mask
+
+    # add collisions
+    self.grid = np.clip(self.grid + collisions, 0.0, 1.0)
 
   def predict(self):
     # COMPLETE THIS METHOD
