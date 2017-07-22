@@ -156,8 +156,9 @@ class Map():
   def updateCollisions(self, x, y, collisions):
     assert(type(self.grid) != type(None))
     # just lower the probability of all other collisions in the space
-    dt = time.time() - self.timeUpdated
-    self.timeUpdated = time.time()
+    currTime = time.time()
+    dt = currTime - self.timeUpdated
+    self.timeUpdated = currTime
     self.grid *= math.exp(0.9 * dt)
     # add collisions
     self.grid = np.clip(self.grid + collisions, 0.0, 1.0)
