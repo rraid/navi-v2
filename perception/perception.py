@@ -2,17 +2,72 @@ import numpy as np
 from scipy.signal import convolve2d
 
 def getSonarDistribution(sonarValues):
-  # COMPLETE THIS METHOD
-  return np.array([[]])
+  sonarDistx = np.zeros((9,100))
+  sonarDisty = np.zeros((9,100))
+  relativeAngle = np.linspace(-7.5,7.5,100)
+  for i in range(9):
+    for distribution in range(100):
+      sonarDistx[i,distribution] =int(math.cos(math.radians(sonarAngle[i] + relativeAngle[distribution]))* sonarValues[i])
+      sonarDisty[i,distribution] =int(math.sin(math.radians(sonarAngle[i] + relativeAngle[distribution]))* sonarValues[i])
+
+  sizex = abs(np.amax(sonarDistx)) + abs(np.amin(sonarDistx))
+  sizey = abs(np.amax(sonarDisty)) + abs(np.amin(sonarDisty))
+  if sizex == 0:
+      sizex = 1
+  if sizey== 0:
+      sizey = 1
+  if sizex > 0 and sizey>0:
+
+    sonarArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
+  for sonar in range(9):
+    for i in range(100):
+        sonarArray[sizex + sonarDistx[sonar,i], sizey + sonarDisty[sonar,i]] = 1
+  return sonarArray
 
 def getLidarDistribution(pts):
-  # COMPLETE THIS METHOD
-  return np.array([[]])
+  size = len(pts)
+  lidarDist = np.zeros((2,size))
+  angleDist = np.linspace(-135,135,size)
+  for i in range(size):
+    lidarDist[0,i] = int(math.cos(math.radians(angleDist[i])) * pts[i])
+    lidarDist[1,i] = int(math.sin(math.radians(angleDist[i])) * pts[i])
+
+  sizex = abs(np.amax(lidarDist[0,:])) + abs(np.amin(lidarDist[0,:]))
+  sizey = abs(np.amax(lidarDist[1,:])) + abs(np.amin(lidarDist[1,:]))
+  if sizex == 0:
+      sizex = 1
+  if sizey== 0:
+      sizey = 1
+  if sizex > 0 and sizey>0:
+
+    lidarArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
+  for i in range(size):
+    lidarArray[ sizex + lidarDist[0,i],sizey + lidarDist[1,i]] = 1
+  return lidarArray
+rn np.array([[]])
 
 def getZEDDistribution(columns):
-  # COMPLETE THIS METHOD
-  return np.array([[]])
+  size = len(columns)
+  zedDist = np.zeros((2,size))
+  angleDist = np.linspace(-55,55,size)
+  for i in range(size):
+    zedDist[0,i] = int(math.cos(math.radians(angleDist[i])) * columns[i])
+    zedDist[1,i] = int(math.sin(math.radians(angleDist[i])) * columns[i])
 
+  sizex = abs(np.amax(zedDist[0,:])) + abs(np.amin(zedDist[0,:]))
+  sizey = abs(np.amax(zedDist[1,:])) + abs(np.amin(zedDist[1,:]))
+  if sizex == 0:
+      sizex = 1
+  if sizey== 0:
+      sizey = 1
+  if sizex > 0 and sizey>0:
+
+    zedArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
+  for i in range(size):
+    zedArray[ sizex + zedDist[0,i],sizey + zedDist[1,i]] = 1
+  return zedArray
+
+def
 def getGPSDistribution(x, y):
   # TODO: account for longitude, latitude offset
   shape = (500, 500)
