@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from scipy.signal import convolve2d
+from scipy.ndimage.interpolate import rotate
 from PIL, import Image, ImageDraw
 import chilipy
 import cv2
@@ -52,7 +53,6 @@ def getLidarDistribution(pts):
   for i in range(size):
     lidarArray[ sizex + lidarDist[0,i],sizey + lidarDist[1,i]] = 1
   return lidarArray
-rn np.array([[]])
 
 def getZEDDistribution(columns):
   size = len(columns)
@@ -116,23 +116,56 @@ def getCompassDistribution(degrees):
 
 class Localizer():
   def __init__(self):
+    self.state
     pass
 
-  def initializeUniformly(self, x_meters, y_meters):
-    # COMPLETE THIS METHOD
+  def initializeUniformly(self, sentShape):
+    self.state = 1/np.sum(np.ones((sentShape.shape[0],sentShape.shape[1],36)))
     pass
 
   def updatePosition(self, vx, vy):
-    # COMPLETE THIS METHOD
+    kernel = np.zeros((65,65))
+    for i in range(kernel.shape[0]):
+      for j in range(kernel.shape[1]):
+        kernel[i,j] = math.exp(-1*(1/20)*((((i-32)-vx)**2) + (((j-32)-vy)**2)))
+    for theta in self.state.size[2]
+      self.state[:,:,theta] = convolve2d(kernel,self.state)
     pass
 
   def observePosition(self, gps, sonar, lidar, zed):
-    # COMPLETE THIS METHOD
+    for theta in range(self.state.shape[2])
+      self.state[:,:,theta]= np.multiply(self.state[:,:,theta], gps)
+
+      sizex = lidar.shape[0]
+      sizey = lidar.shape[1]
+      if(sizex<zed.shape[0]):
+        sizex=zed.shape[0]
+      if(sizex<sonar.shape[0]):
+        sizex=sonar.shape[0]
+      if(sizey<zed.shape[1]):
+        sizey=zed.shape[1]
+      if(sizey<sonar.shape[1]):
+        sizey=sonar.shape[1]
+      sensorSum = np.zeros(sizex,sizey)
+
+      sensorSum = addMatrixFromCenter(sensorSum,lidar)
+      sensorSum = addMatrixFromCenter(sensorSum,sonar)
+      sensorSum = addMatrixFromCenter(sensorSum,zed)
+
+      for theta in range(36):
+        self.state[:,:,theta] = convolve2d(rotate(sensorSum, theta * 10),self.state)
     pass
 
+  def addMatrixFromCenter(matrixA, matrixB):
+      convX = (matrixA.shape[0] - matrixB.shape[0])/2
+      convy = (matrixA.shape[1] - matrixB.shape[1])/2
+      for x in range(matrixB.shape[0]):
+        for y in range(matrixB.shape[1]):
+          matrixA[x + convX, y + convY] += matrixB[x,y]
+      return matrixA
+
   def topPercentPredict(self, percent):
-    # COMPLETE THIS METHOD
-    return []
+    return np.argwhere(self.state>percent)
 
   def getDistribution(self):
     return np.array([[]])
