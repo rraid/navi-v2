@@ -136,25 +136,15 @@ class Localizer():
     for theta in range(self.state.shape[2])
       self.state[:,:,theta]= np.multiply(self.state[:,:,theta], gps)
 
-      sizex = lidar.shape[0]
-      sizey = lidar.shape[1]
-      if(sizex<zed.shape[0]):
-        sizex=zed.shape[0]
-      if(sizex<sonar.shape[0]):
-        sizex=sonar.shape[0]
-      if(sizey<zed.shape[1]):
-        sizey=zed.shape[1]
-      if(sizey<sonar.shape[1]):
-        sizey=sonar.shape[1]
+      sizex = max(lidar.shape[0],zed.shape[0],sonar.shape[0])
+      sizey = max(lidar.shape[1],zed.shape[1],sonar.shape[1])
       sensorSum = np.zeros(sizex,sizey)
 
       sensorSum = addMatrixFromCenter(sensorSum,lidar)
       sensorSum = addMatrixFromCenter(sensorSum,sonar)
       sensorSum = addMatrixFromCenter(sensorSum,zed)
-
       for theta in range(36):
         self.state[:,:,theta] = convolve2d(rotate(sensorSum, theta * 10),self.state)
-    pass
 
   def addMatrixFromCenter(matrixA, matrixB):
       convX = (matrixA.shape[0] - matrixB.shape[0])/2
