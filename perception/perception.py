@@ -201,16 +201,22 @@ class Map():
 
 class ObjectDetector():
   def __init__(self):
-    pass
+    self.tags = dict()
 
   def setObjects(self, objectNames):
-    # COMPLETE THIS METHOD
-    pass
+    for obj in objectNames
+      self.tags.update({obj:None})
 
-  def observe(self, rgbImage):
-    # COMPLETE THIS METHOD
-    pass
+  def observe(self, rgbImage,depthImage):
+    grayImage = cv2.cvtColor(rgbImage, cv2.COLOR_BGR2GRAY))
+    allTags = chili.find(grayImage)
+    for tag in self.tags
+      corners = numpy.array(allTags.get(tag))
+      midpoint = (corners[2:4] - corners[0:2]) - (corners[6:8] - corners[4:6])
+      ##Couldnt think of a good way to calculate the sum of any quadrilatiral,
+      ##so i just returned the depth at the midpoint
+      depth = depthImage[(midpoint[0],midpoint[1])]
+      self.tags[tag] = numpy.array((midpoint,depth))
 
   def detect(self):
-    # COMPLETE THIS METHOD
-    return []
+    return self.tags
