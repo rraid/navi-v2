@@ -171,11 +171,10 @@ class Map():
   def initializeEmpty(self, x_meters, y_meters):
     self.x_meters = x_meters
     self.y_meters = y_meters
-    self.grid = np.zeros((y_meters * 2, x_meters * 2, 36), dtype=np.float32)
+    self.grid = np.zeros((y_meters * 2, x_meters * 2), dtype=np.float32)
 
   def updateCollisions(self, localizer, collisions):
     assert(type(self.grid) != type(None))
-    assert(np.sum(localizer) == 1.0) # be careful! super slow
     # just lower the probability of all other collisions in the space
     currTime = time.time()
     dt = currTime - self.timeUpdated
@@ -184,6 +183,7 @@ class Map():
 
     # convolve the collisions with the localizer and add it in
     positions = localizer.getDistribution()
+    assert(np.sum(positions) == 1.0) # be careful! super slow
     obstacles = np.zeros((positions.shape[0], positions.shape[1]))
     for i in range(positionDistribution.shape[2]):
       obstacles += convolve2d(positions[:,:,i], rotate(collisions, 10 * i))
