@@ -180,7 +180,7 @@ class Map():
     currTime = time.time()
     dt = currTime - self.timeUpdated
     self.timeUpdated = currTime
-    self.grid *= math.exp(0.9 * dt)
+    self.grid *= math.exp(-0.5 * dt)
 
     # convolve the collisions with the localizer and add it in
     positions = localizer.getDistribution()
