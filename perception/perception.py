@@ -98,9 +98,9 @@ def getGPSDistribution(x, y):
                max(x_ - 18, 0) : min(x_ + 19, shape[0])] = G
   return distribution 
 
-def getCompassDistribution(degrees):
+def getComDistribution(degrees):
   if degrees == None:
-    print "Error: Compass cannot be None"
+    print "Error: Com cannot be None"
     return np.array([[]]) # no distribution
 
   D = np.arange(-20, 30, 10.0)
@@ -117,11 +117,9 @@ def getCompassDistribution(degrees):
 class Localizer():
   def __init__(self):
     self.state
-    pass
 
   def initializeUniformly(self, sentShape):
     self.state = 1/np.sum(np.ones((sentShape.shape[0],sentShape.shape[1],36)))
-    pass
 
   def updatePosition(self, vx, vy):
     kernel = np.zeros((65,65))
@@ -130,7 +128,6 @@ class Localizer():
         kernel[i,j] = math.exp(-1*(1/20)*((((i-32)-vx)**2) + (((j-32)-vy)**2)))
     for theta in self.state.size[2]
       self.state[:,:,theta] = convolve2d(kernel,self.state)
-    pass
 
   def observePosition(self, gps, sonar, lidar, zed):
     for theta in range(self.state.shape[2])
@@ -176,15 +173,23 @@ class Map():
     self.y_meters = y_meters
     self.grid = np.zeros((y_meters * 2, x_meters * 2, 36), dtype=np.float32)
 
-  def updateCollisions(self, x, y, collisions):
+  def updateCollisions(self, localizer, collisions):
     assert(type(self.grid) != type(None))
+    assert(np.sum(localizer) == 1.0) # be careful! super slow
     # just lower the probability of all other collisions in the space
     currTime = time.time()
     dt = currTime - self.timeUpdated
     self.timeUpdated = currTime
     self.grid *= math.exp(0.9 * dt)
+
+    # convolve the collisions with the localizer and add it in
+    positions = localizer.getDistribution()
+    obstacles = np.zeros((positions.shape[0], positions.shape[1]))
+    for i in range(positionDistribution.shape[2]):
+      obstacles += convolve2d(positions[:,:,i], rotate(collisions, 10 * i))
+
     # add collisions
-    self.grid = np.clip(self.grid + collisions, 0.0, 1.0)
+    self.grid = np.clip(self.grid + obstacles, 0.0, 1.0)
 
   def predict(self):
     return self.grid
