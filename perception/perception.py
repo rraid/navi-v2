@@ -155,7 +155,7 @@ class Localizer():
     return np.argwhere(self.state>percent)
 
   def getDistribution(self):
-    return np.array([[]])
+    return self.state
 
 class Map():
   def __init__(self):
