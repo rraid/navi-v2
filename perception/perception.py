@@ -199,13 +199,13 @@ class ObjectDetector():
     self.tags = dict()
 
   def setObjects(self, objectNames):
-    for obj in objectNames
+    for obj in objectNames:
       self.tags.update({obj:None})
 
   def observe(self, rgbImage,depthImage):
     grayImage = cv2.cvtColor(rgbImage, cv2.COLOR_BGR2GRAY))
     allTags = chili.find(grayImage)
-    for tag in self.tags
+    for tag in self.tags:
       corners = numpy.array(allTags.get(tag))
       midpoint = (corners[2:4] - corners[0:2]) - (corners[6:8] - corners[4:6])
       ##Couldnt think of a good way to calculate the sum of any quadrilatiral,
