@@ -116,10 +116,11 @@ def getComDistribution(degrees):
 
 class Localizer():
   def __init__(self):
-    self.state
+    self.state = None
 
   def initializeUniformly(self, sentShape):
-    self.state = 1/np.sum(np.ones((sentShape.shape[0],sentShape.shape[1],36)))
+    self.state = np.ones((sentShape.shape[0],sentShape.shape[1],36))
+    self.state.fill(1/np.sum(self.state))
 
   def updatePosition(self, vx, vy):
     kernel = np.zeros((65,65))
@@ -141,9 +142,9 @@ class Localizer():
       sensorSum = addMatrixFromCenter(sensorSum,sonar)
       sensorSum = addMatrixFromCenter(sensorSum,zed)
       for theta in range(36):
-        self.state[:,:,theta] = convolve2d(rotate(sensorSum, theta * 10),self.state)
+        self.state[:,:,theta] = convolve2d(self.state,rotate(sensorSum, theta * 10), mode=same)
 
-  def addMatrixFromCenter(matrixA, matrixB):
+  def addMatrixFromCenter(self,matrixA, matrixB):
       convX = (matrixA.shape[0] - matrixB.shape[0])/2
       convy = (matrixA.shape[1] - matrixB.shape[1])/2
       for x in range(matrixB.shape[0]):
