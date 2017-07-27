@@ -37,7 +37,7 @@ class AStar(Thread):
     self.nextGoal = pose
 
   def reachedGoal(self, pose):
-    if pose[0:2] = nextGoal[0:2]:
+    if np.array_equal(pose[0:2],self.nextGoal[0:2]):
       return True
     else:
       return False
@@ -82,7 +82,7 @@ class AStar(Thread):
     openSet = np.array([start])
     while not openSet.empty():
       current = min(openSet, key=lambda a: a.getF())
-      if current.position == self.nextGoal[0:2]:
+      if reachedGoal(current.position):
         return retraceParents(current)
         
       x,y = current.position
