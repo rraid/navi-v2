@@ -5,7 +5,6 @@ from scipy.ndimage.interpolate import rotate
 #Actions: N = 0   W = 1   S = 2   E = 3
 #         NW = 4  SW = 5  SE = 6  NE = 7
 class AStar(Thread):
-
   rotate = np.array([(0,1),(-1,0),(0,-1),(1,0),(-1,1),(-1,-1),(1,-1),(1,1)])
   angle  = np.array([0, 270, 180, 90, 315, 225, 135, 45])
   
@@ -16,10 +15,20 @@ class AStar(Thread):
     self.energyCost = 0.01
     self.nextGoal = None
     self.self = cv2.imread('robot.png')
+    # create a variable to store the localizer object by reference
+    self.localizer = None
     
   def run(self):
     while not self.stopstate:
-      
+      # grab the distribution from the localizer
+      distribution = self.localizer.predict()
+      # select the most likely position to start planning on
+      pose = list(np.argwhere(distribution == np.amax(distribution))[0, :])
+      # plan the flow map on that position
+      self.computePath(pose)
+
+  def setLocalizer(self, localizer):
+    self.localizer = localizer
 
   def setConstraintSpace(self, pathmap, collisionSpace):
     self.c_space = pathmap + collisionSpace
