@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from scipy.signal import convolve2d
+from scipy.signal import convolve2d, correlate2d
 from scipy.ndimage.interpolate import rotate
 from PIL, import Image, ImageDraw
 import chilipy
@@ -9,6 +9,18 @@ import cv2
 #Top four sonars from left to right followed by
 #bottom five sonars from left to right
 sonarAngle = np.array([-20, -10 , 10, -20, -20, -10, 0, 10, 20])
+
+def patchSSD2d(in1, in2, mode="same", boundary="fill"):
+  assert len(in1.shape) == 2
+  assert len(in2.shape) == 2
+  totWeight = float(in2.shape[0] * in2.shape[1])
+  B2 = np.sum(np.multiply(in2, in2))
+  AB = 2.0 * correlate2d(in1, in2, mode=mode, boundary=boundary)
+  A2 = np.multiply(in1, in1)
+  sumsq = (B2 - AB + A2) / totWeight
+  # for some reason this can be negative, try to check
+  assert np.min(sumsq) >= 0.0
+  return sumsq
 
 def getSonarDistribution(sonarValues):
   sonarDistx = np.zeros((9,100))
@@ -75,6 +87,24 @@ def getZEDDistribution(columns):
     zedArray[ sizex + zedDist[0,i],sizey + zedDist[1,i]] = 1
   return zedArray
 
+def addMatrixFromCenter(matrixA, matrixB):
+  convX = (matrixA.shape[0] - matrixB.shape[0])/2
+  convy = (matrixA.shape[1] - matrixB.shape[1])/2
+  for x in range(matrixB.shape[0]):
+    for y in range(matrixB.shape[1]):
+      matrixA[x + convX, y + convY] += matrixB[x,y]
+  return matrixA
+
+def getCollisionDistribution(sonar, lidar, zed):
+  sizex = max(lidar.shape[0],zed.shape[0],sonar.shape[0])
+  sizey = max(lidar.shape[1],zed.shape[1],sonar.shape[1])
+  sensorSum = np.zeros(sizex,sizey)
+
+  sensorSum = addMatrixFromCenter(sensorSum,lidar)
+  sensorSum = addMatrixFromCenter(sensorSum,sonar)
+  sensorSum = addMatrixFromCenter(sensorSum,zed)
+  return sensorSum
+
 def getGPSDistribution(x, y):
   shape = [500, 500]
   offset = [0, 0] # lat, long
@@ -86,7 +116,7 @@ def getGPSDistribution(x, y):
     return np.array([[]]) # no distribution
 
   X = np.arange(-9.0, 9.5, 0.5)
-  Y = np.arange(9.0, -9.5, -0.5)
+  Y = np.arange(-9.0, 9.5, 0.5)
   X, Y = np.meshgrid(X, Y)
   G = np.exp(-(X ** 2.0 + Y ** 2.0) / (2.0 * 2.5))
   G /= np.sum(G)
@@ -98,11 +128,14 @@ def getGPSDistribution(x, y):
                max(x_ - 18, 0) : min(x_ + 19, shape[0])] = G
   return distribution 
 
-def getComDistribution(degrees):
-  if degrees == None:
-    print "Error: Com cannot be None"
+def getCompassDistribution(degreesFromNorth):
+  if degreesFromNorth == None:
+    print "Error: Compass cannot be None"
     return np.array([[]]) # no distribution
 
+  degrees = degreesFromNorth + 90.0 # account for offset
+  # create a kernel for convolving - super overkill, but it works
+  # TODO: make more efficient later (really inefficient right now)
   D = np.arange(-20, 30, 10.0)
   G = np.exp(-(D ** 2.0) / (2.0 * 10))
   G = np.reshape(G, (G.shape[0], 1))
@@ -117,73 +150,93 @@ def getComDistribution(degrees):
 class Localizer():
   def __init__(self):
     self.state = None
+    self.left = 0.0
+    self.right = 0.0
+    self.timeUpdated = time.time()
 
   def initializeUniformly(self, sentShape):
     self.state = np.ones((sentShape.shape[0],sentShape.shape[1],36))
     self.state.fill(1/np.sum(self.state))
 
-  def updatePosition(self, vx, vy):
+  def updatePosition(self, left, right):
+    currTime = time.time()
+    dt = currTime - self.timeUpdated
+    self.timeUpdated = currTime
+    # use the velocity model (Probabilistic Robotics 5.2)
+    wheel_radius = 0.14
+    robot_radius = 0.343
+    rpm = 5700
+    vel = lambda k: 2.0 * math.pi * wheel_radius * rpm * k / 60.0
+    l = vel(self.left)
+    r = vel(self.right)
+    v = (l + r) / 2.0
+    w = (r - l) / (2.0 * robot_radius)
+    # apply a skewed gaussian on the forward motion
     kernel = np.zeros((65,65))
     for i in range(kernel.shape[0]):
       for j in range(kernel.shape[1]):
-        kernel[i,j] = math.exp(-1*(1/20)*((((i-32)-vx)**2) + (((j-32)-vy)**2)))
-    for theta in self.state.size[2]
-      self.state[:,:,theta] = convolve2d(kernel,self.state)
+        kernel[i,j] = math.exp(-1*(1/(20*dt+1e-6))*(((i-32-v)**2) + ((j-32)**2)))
+    for theta in self.state.size[2]:
+      self.state[:,:,theta] = convolve2d(
+          self.state, rotate(kernel, theta * 10), mode="same")
 
-  def observePosition(self, gps, sonar, lidar, zed):
+    # apply a gaussian on the angular motion
+    D = np.arange(-40, 50, 10.0)
+    G = np.exp(-((D - w) ** 2.0) / (2.0 * 5.0))
+    G = np.reshape(G, (1, G.shape[0]))
+    G /= np.sum(G)
+
+    temp = np.reshape(self.state,
+        (self.state.shape[0] * self.state.shape[1], self.state.shape[2]))
+    temp = convolve2d(temp, G, mode="same")
+    self.state = np.reshape(temp, self.state.shape)
+
+    self.left = left
+    self.right = right
+
+  def observePosition(self, gps, compass, collisions):
     for theta in range(self.state.shape[2])
-      self.state[:,:,theta]= np.multiply(self.state[:,:,theta], gps)
-
-      sizex = max(lidar.shape[0],zed.shape[0],sonar.shape[0])
-      sizey = max(lidar.shape[1],zed.shape[1],sonar.shape[1])
-      sensorSum = np.zeros(sizex,sizey)
-
-      sensorSum = addMatrixFromCenter(sensorSum,lidar)
-      sensorSum = addMatrixFromCenter(sensorSum,sonar)
-      sensorSum = addMatrixFromCenter(sensorSum,zed)
-      for theta in range(36):
-        self.state[:,:,theta] = convolve2d(self.state,rotate(sensorSum, theta * 10), mode=same)
-
-  def addMatrixFromCenter(self,matrixA, matrixB):
-      convX = (matrixA.shape[0] - matrixB.shape[0])/2
-      convy = (matrixA.shape[1] - matrixB.shape[1])/2
-      for x in range(matrixB.shape[0]):
-        for y in range(matrixB.shape[1]):
-          matrixA[x + convX, y + convY] += matrixB[x,y]
-      return matrixA
+      self.state[:,:,theta] = \
+          np.multiply(self.state[:,:,theta], gps) * compass[theta]
+      self.state[:,:,theta] = patchSSD2d(
+          self.state, rotate(collisions, theta * 10), mode="same")
 
   def topPercentPredict(self, percent):
     return np.argwhere(self.state>percent)
 
-  def getDistribution(self):
-    return self.state
+  def predict(self):
+    # return a copy of the distribution
+    self.updatePosition(self.left, self.right)
+    return self.state[:,:,:]
 
-class Map():
-  def __init__(self):
+class GridMap():
+  def __init__(self, decay_rate=0.5):
     self.x_inc = 0.5
     self.x_meters = 0
     self.y_inc = 0.5
     self.y_meters = 0
     self.theta_inc = 10
     self.n_theta = 36
+    self.decay_rate = decay_rate
     self.grid = None
     self.timeUpdated = time.time()
 
   def initializeEmpty(self, x_meters, y_meters):
     self.x_meters = x_meters
     self.y_meters = y_meters
-    self.grid = np.zeros((y_meters * 2, x_meters * 2), dtype=np.float32)
+    self.grid = np.zeros((int(y_meters / self.y_inc),
+                          int(x_meters / self.x_inc)), dtype=np.float32)
 
   def updateCollisions(self, localizer, collisions):
-    assert(type(self.grid) != type(None))
-    # just lower the probability of all other collisions in the space
+    assert type(self.grid) != type(None)
+    # just lower the probability of all other collisions in the space wrt. time
     currTime = time.time()
     dt = currTime - self.timeUpdated
     self.timeUpdated = currTime
-    self.grid *= math.exp(-0.5 * dt)
+    self.grid *= math.exp(-self.decay_rate * dt)
 
     # convolve the collisions with the localizer and add it in
-    positions = localizer.getDistribution()
+    positions = localizer.predict()
     assert(np.sum(positions) == 1.0) # be careful! super slow
     obstacles = np.zeros((positions.shape[0], positions.shape[1]))
     for i in range(positionDistribution.shape[2]):
