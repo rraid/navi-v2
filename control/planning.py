@@ -1,15 +1,20 @@
 from threading import Thread
 import cv2
+from scipy.ndimage.interpolate import rotate
 
-#Actions: stay = 0  moveForware = 1 turn to-  E=2  NE=3  N=4  NW=5  W=6 SW=7  S=8 SE=9
-
+#Actions: N = 0   W = 1   S = 2   E = 3
+#         NW = 4  SW = 5  SE = 6  NE = 7
 class AStar(Thread):
 
+  rotate = np.array([(0,1),(-1,0),(0,-1),(1,0),(-1,1),(-1,-1),(1,-1),(1,1)])
+  angle  = np.array([0, 270, 180, 90, 315, 225, 135, 45])
+  
   def __init__(self):
     Thread.__init__(self)
     self.stopstate = False
     self.c_space = None
     self.energyCost = 0.01
+    self.nextGoal = None
     self.self = cv2.imread('robot.png')
     
   def run(self):
@@ -20,8 +25,7 @@ class AStar(Thread):
     self.c_space = pathmap + collisionSpace
 
   def setNextGoal(self, pose):
-    global nextGoal
-    nextGoal = pose
+    self.nextGoal = pose
 
   def reachedGoal(self, pose):
     if pose[0:2] = nextGoal[0:2]:
@@ -30,31 +34,90 @@ class AStar(Thread):
       return False
 
   def getValidActions(self, pose):
-    actions = np.array([0])
-    forward = np.multiply(self.self, self.c_space[pose[0]-(self.self.shape[0]/2):pose[0]+(self.self.shape[0]/2),pose[1]-(rotatedSelf.shape[1]/2) + 1:pose[1]+(rotatedSelf.shape[1]/2) + 1])
-    if forward <= .1:
-      actions = np.append(actions,[1])
-    for theta in range(8):
-      rotatedSelf = rotate(self.self,theta * 45)
-      rotation= np.multiply(rotatedSelf, self.c_space[pose[0]-(rotatedSelf.shape[0]/2):pose[0]+(rotatedSelf.shape[0]/2), pose[1]-(rotatedSelf.shape[1]/2):pose[1]+(rotatedSelf.shape[1]/2)])
-      if rotation <= .1:
-        actions = np.append(actions,theta)
+    actions = np.zeros(8)
+    for action in range(8):
+      cost = getCost(pose,action,1)
+      if cost[0] <.1 and cost[1] <.1:
+        actions[action] = 1
     return actions
 
   def getSuccessors(self, pose, action, dt):
-    pass
+    return (pose[0] + rotation[action], pose[1] + rotation[action], angle[action])
 
   def getCost(self, pose, action, dt):
-    pass
+    cost = np.zeros(2)
+    newPose = getSuccessors(pose,action,dt)
+    rotatedSelf = rotate(self.self,newPose[2])
+    rotSizex,rotSize_y = rotatedSelf.shape[0]/2,rotatedSelf.shape[1]/2
+    
+    cost[0] = np.multiply(rotatedSelf, self.c_space[pose[0]-rotSize_x:pose[0]+rotSize_x, pose[1]-rotSize_y:pose[1]+rotSize_y])
+    
+    cost[1] = np.multiply(rotatedSelf, self.c_space[pose[0]-rotSize_x + rotate[theta,0]:pose[0]+rotSize_x+ rotate[theta,0], pose[1]-rotSize_y+rotate[theta,1]:pose[1]+rotSize_y]+rotate[theta,1])
+    return cost
 
-  def distanceCost(self, pose1, pose2):
-    return numpy.linalg.norm(pose2[0:2]-pose1[0:2]) * self.energyCost
+  def distanceCost(self, pose1):
+    return numpy.linalg.norm(self.nestGoal[0:2]-pose1[0:2]) * self.energyCost
 
-  def retraceParents(self, startingPose, goalPose, parents):
-    # Note: can use this as a helper function for your A*
-    pass
+  def retraceParents(self,node):
+    path = np.empty(0)
+    while node != None:
+      np.append(path,node)
+      node = node.parent
+    return path
 
   def computePath(self, pose):
-    pass
+    closedSet = np.empty(0)
+    orthogonal = 1
+    diagonal = 1.4
+    start = Node(0,distanceCost(pose[0:2]),None,pose[0:2])
+    openSet = np.array([start])
+    while not openSet.empty():
+      current = min(openSet, key=lambda a: a.getF())
+      if current.position == self.nextGoal[0:2]:
+        return retraceParents(current)
+        
+      x,y = current.position
+      isValid = getValidActions((x,y))
+      pos = np.add(rotate,(x,y))
+      for theta in range(8):
+        if isValid(theta) == False:
+          continue
+          
+        if direction < 4:
+          travel = orthogonal
+        else:
+          travel = diagonal
+          
+        for check in closedSet:
+          if pos[theta] == check.position:
+            break
+        else:
+          for check in openSet:
+            if pos[theta] == check.position:
+              newG = current.g + travel
+              if newG > check.g:
+                check.g = newG
+                check.parent = current
+                break    
+          else:
+            np.append(openSet,Node(distanceCost(pos[theta]),current.g+travel,current,pos[theta]))
+            
+      np.append(closedSet,current)
+      openSet = np.delete(openSet,np.argwhere(openSet==current))
+      
+    else:
+      print "No Path Found"
+    
   def stop(self):
     self.stopstate = True
+    
+    
+class Node():
+  def __init__(self,g,h,parent,position):
+    self.g = g
+    self.h = h
+    self.parent = parent
+    self.position = position
+  def getF(self):
+    return self.g + self.h
+  
