@@ -78,7 +78,7 @@ class ArduinoListener(Thread):
   def run(self):
     while not self.stopstate:
       self.readSerial()
-      #self.writeSerial()
+      self.writeSerial()
       time.sleep(0.1) # 10 MHz refresh
 
   def readSerial(self):
@@ -109,7 +109,7 @@ class ArduinoListener(Thread):
             
   def writeSerial(self):
     global motorVelocity
-    writeBuff = "[" + motorVelocity + "]\n"
+    writeBuff = "[" + motorVelocity[0] + "," + motorVelocity[1] + "]\n"
     self.arduino.write(writeBuff)
     
   def stop(self):
