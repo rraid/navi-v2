@@ -1,22 +1,22 @@
 import sys
-sys.path.append("../device")
-import devhub
 import math
 import numpy as np
 from scipy.signal import convolve2d, correlate2d
-from scipy.ndimage.interpolate import rotate
-import chilipy
+from scipy.ndimage.interpolation import rotate
 import cv2
 import time
+from threading import Thread
 
 #Top four sonars from left to right followed by
 #bottom five sonars from left to right
 sonarAngle = np.array([-20, -10 , 10, -20, -20, -10, 0, 10, 20])
 
+mapShape = (480, 640)
+
 _X = np.arange(-9.0, 9.5, 0.5)
 _Y = np.arange(-9.0, 9.5, 0.5)
 _X, _Y = np.meshgrid(_X, _Y)
-GPSD = np.exp(-(_X ** 2.0 + _Y ** 2.0) / (2.0 * 2.5))
+GPSD = np.exp(-(np.multiply(_X, _X) + np.multiply(_Y, _Y)) / (2.0 * 2.5))
 GPSD /= np.sum(GPSD)
 
 def getSonarDistribution(sonarValues):
@@ -104,54 +104,53 @@ def getCollisionDistribution(sonar, lidar, zed):
 
 def getGPSDistribution(pos):
   global GPSD
-  shape = [500, 500]
+  global mapShape
+  shape = mapShape
   offset = [0, 0] # lat, long
   x = pos[0] - offset[0]
   y = pos[1] - offset[1]
 
   if x <= 0 or x > shape[0] or y < 0 or y >= shape[1]:
-    print "Error: GPS distribution out of bounds"
+    print("Error: GPS distribution out of bounds")
     return np.array([[]]) # no distribution
 
-  x_ = x
-  y_ = shape[1] - y - 1
   distribution = np.zeros(shape, dtype=np.float32)
-  distribution[max(y_ - 18, 0) : min(y_ + 19, shape[1]),
-               max(x_ - 18, 0) : min(x_ + 19, shape[0])] = GPSD
+  distribution[max(y - 18, 0) : min(y + 19, shape[1]),
+               max(x - 18, 0) : min(x + 19, shape[0])] = GPSD
   return distribution 
 
 def getCompassDistribution(degreesFromNorth):
   if degreesFromNorth == None:
-    print "Error: Compass cannot be None"
+    print("Error: Compass cannot be None")
     return np.array([[]]) # no distribution
 
-  degrees = degreesFromNorth + 90.0 # account for offset
-  # create a kernel for convolving - super overkill, but it works
-  # TODO: make more efficient later (really inefficient right now)
-  D = np.arange(-20, 30, 10.0)
-  G = np.exp(-(D ** 2.0) / (2.0 * 10))
-  G = np.reshape(G, (G.shape[0], 1))
-  G /= np.sum(G)
+  degrees = (degreesFromNorth + 90.0) % 360.0 # account for offset
 
-  deg = int(round(degrees / 10.0)) % 36
-  distribution = np.zeros((36, 1), dtype=np.float32)
-  distribution[deg] = 1.0
-  distribution = convolve2d(distribution, G, mode="same", boundary="wrap")
-  return np.reshape(distribution, (distribution.shape[0], ))
+  D = np.arange(0, 360, 10.0) - degrees
+  D = D + (D > 180) * -360
+  D = D + (D > 180) * -360
+  D = np.exp(-np.multiply(D, D) / 60.0) # 30 degree standard deviation
+  D /= np.sum(D)
+  return D
 
 class Perception(Thread):
   def __init__(self, pathmap):
+    sys.path.append("../device")
+    import devhub
+
     currTime = time.time()
     self.localizer = Localizer()
     self.mapper = GridMap()
     self.detector = ObjectDetector()
-    self.pathmap = None
     self.stopstate = False
     self.pathmap = pathmap
     self.collisions = np.zeros(self.pathmap.shape[:2])
     self.localizer.initializeUniformly(self.pathmap.shape[:2])
     self.mapper.initializeEmpty(self.pathmap.shape[:2])
     self.detector.setObjects([]) # no objects for now, we can use them later
+
+    global mapShape
+    mapShape = self.pathmap.shape
 
   def getCollisions(self):
     return np.copy(self.collisions)
@@ -173,7 +172,7 @@ class Perception(Thread):
         self.collisions)
       self.mapper.setCollisions(self.collisions)
       currTime = time.time()
-      print "[PERCEPTION] process time:", currTime - lastTime
+      print("[PERCEPTION] process time:", currTime - lastTime)
       lastTime = currTime
 
   def stop(self):
