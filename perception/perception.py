@@ -40,12 +40,12 @@ def getSonarDistribution(sonarValues):
   for sonar in range(9):
     for i in range(100):
         print type(sonarDistx[sonar,i])
-        sonarArray[sizex + sonarDistx[sonar,i], sizey + sonarDisty[sonar,i]] = 1
+        sonarArray[sizex + sonarDistx[sonar,i], sizey + sonarDisty[sonar,i]] += 0.01
   return sonarArray
 
 def getLidarDistribution(pts):
   size = len(pts)
-  lidarDist = np.zeros((2,size))
+  lidarDist = np.zeros((2,size), dtype = np.int)
   angleDist = np.linspace(-135,135,size)
   for i in range(size):
     lidarDist[0,i] = int(math.cos(math.radians(angleDist[i])) * pts[i])
@@ -66,7 +66,7 @@ def getLidarDistribution(pts):
 
 def getZEDDistribution(columns):
   size = len(columns)
-  zedDist = np.zeros((2,size))
+  zedDist = np.zeros((2,size), dtype = np.int)
   angleDist = np.linspace(-55,55,size)
   for i in range(size):
     zedDist[0,i] = int(math.cos(math.radians(angleDist[i])) * columns[i])
@@ -82,7 +82,7 @@ def getZEDDistribution(columns):
 
     zedArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
   for i in range(size):
-    zedArray[ sizex + zedDist[0,i],sizey + zedDist[1,i]] = 1
+    zedArray[ sizex + zedDist[0,i],sizey + zedDist[1,i]] += 1
   return zedArray
 
 def addMatrixFromCenter(matrixA, matrixB):
