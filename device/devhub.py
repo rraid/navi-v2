@@ -12,10 +12,12 @@ import sys
 # Globals
 lidarReadings = []
 depthColumns = []
+colorImage = []
+depthImage = []
 sonarReadings = [0,0,0,0,0,0,0,0,0]
 latitude = None
 longitude = None
-compassReading = None
+heading = None
 
 motorVelocity = [0,0]
 
@@ -49,15 +51,19 @@ def lidarCallbackHandler(scan):
   lidarReadings = len(scan.intensities)
 
 
-def zedCallbackHandler(frame):
+def zedDepthCallbackHandler(frame):
   global depthColumns
+  global depthImage
   depthImage = np.reshape(np.fromstring(frame.data, dtype=np.float32),(frame.height,frame.width))
   dataMid = frame.height/2
   subImage = depthImage[dataMid-50:dataMid+50,:]
   depthColumns = np.amin(subImage, axis=0)
   #cv2.imshow('img',depthColumns)
   #cv2.waitKey(30)
-
+  
+def zedDepthCallbackHandler(frame):
+  global colorImage
+  colorImage = np.reshape(np.fromstring(frame.data, dtype=np.float32),(frame.height,frame.width))
 
 class ArduinoListener(Thread):
 
@@ -96,8 +102,10 @@ class ArduinoListener(Thread):
               latitude = float(buff[prev:ptr])
               count += 1
               prev = ptr + 1
-            else:
+            elif count ==10:
               longitude = float(buff[prev:ptr])
+            else:
+              heading = float(buff[prev:ptr])
             
   def writeSerial(self):
     global motorVelocity
@@ -115,8 +123,9 @@ class ROSListener(Thread):
     ros.Subscriber("/scan", 
         LaserScan, lidarCallbackHandler)
     ros.Subscriber("/zed/depth/depth_registered", 
-        Image, zedCallbackHandler)
-
+        Image, zedDepthCallbackHandler)
+    ros.Subscriber("/zed/left/image_rect_color", 
+        Image, zedImageCallbackHandler)
   def run(self):
     ros.spin() # blocks already
 
