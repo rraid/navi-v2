@@ -64,13 +64,12 @@ class AStar(Thread):
     return path
 
   def computePath(self, pose):
-    closed = np.zeros(self.c_space.shape)
+    closed = np.zeros(self.c_space.shape, dtype=np.uint8)
     opened = []
-    gScore = np.zeros(self.c_space.shape)
-    fScore = np.zeros(self.c_shape.shape)
-    numleft = np.prod(self.c_space.shape)
-    xPotential = np.zeros(self.pathmap.shape[:2])
-    yPotential = np.zeros(self.pathmap.shape[:2])
+    gScore = np.zeros(self.c_space.shape, dtype=np.float32)
+    fScore = np.zeros(self.c_shape.shape, dtype=np.float32)
+    xPotential = np.zeros(self.pathmap.shape[:2], dtype=np.int8)
+    yPotential = np.zeros(self.pathmap.shape[:2], dtype=np.int8)
     c_space = np.copy(self.c_space)
 
     opened.append((self.nextGoal[:2], 0))
@@ -91,8 +90,9 @@ class AStar(Thread):
           continue
         tentative_gScore = gScore[current[1], current[0]] + \
             self.getCost(current, successor)
-        tentative_fScore = tentative_gScore + \
-            self.distanceCost(successor, pose[:2])
+        #tentative_fScore = tentative_gScore + \
+        #    self.distanceCost(successor, pose[:2])
+        tentative_fScore = tentative_gScore
         if sum([np.array_equal(successor, n) for n in opened]) == 0:
           opened.append((successor, tentative_fScore))
         elif tentative_gScore >= gScore[successor[1], successor[0]]:
