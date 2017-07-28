@@ -55,14 +55,14 @@ class Localizer(Thread):
           convolve2d(self.state, rotate(kernel, theta * 10), mode="same")
 
     # apply a gaussian on the angular motion
-    D = np.arange(-40, 50, 10.0)
-    G = np.exp(-((D - w) ** 2.0) / (2.0 * 5.0))
+    D = np.arange(-40, 50, 10.0) - w
+    G = np.exp(-np.multiply(D, D) / 10.0)
     G = np.reshape(G, (1, G.shape[0]))
     G /= np.sum(G)
 
     temp = np.reshape(self.state,
         (self.state.shape[0] * self.state.shape[1], self.state.shape[2]))
-    temp = convolve2d(temp, G, mode="same")
+    temp = convolve2d(temp, G, mode="same", boundary="wrap")
     self.state = np.reshape(temp, self.state.shape)
 
     if np.sum(self.state) == 0.0:
