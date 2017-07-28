@@ -20,16 +20,16 @@ GPSD = np.exp(-(np.multiply(_X, _X) + np.multiply(_Y, _Y)) / (2.0 * 2.5))
 GPSD /= np.sum(GPSD)
 
 def getSonarDistribution(sonarValues):
-  sonarDistx = np.zeros((9,100))
-  sonarDisty = np.zeros((9,100))
+  sonarDistx = np.zeros((9,100), dtype = np.int)
+  sonarDisty = np.zeros((9,100), dtype = np.int)
   relativeAngle = np.linspace(-7.5,7.5,100)
   for i in range(9):
     for distribution in range(100):
       sonarDistx[i,distribution] =int(math.cos(math.radians(sonarAngle[i] + relativeAngle[distribution]))* sonarValues[i])
       sonarDisty[i,distribution] =int(math.sin(math.radians(sonarAngle[i] + relativeAngle[distribution]))* sonarValues[i])
 
-  sizex = abs(np.amax(sonarDistx)) + abs(np.amin(sonarDistx))
-  sizey = abs(np.amax(sonarDisty)) + abs(np.amin(sonarDisty))
+  sizex = int(abs(np.amax(sonarDistx)) + abs(np.amin(sonarDistx)))
+  sizey = int(abs(np.amax(sonarDisty)) + abs(np.amin(sonarDisty)))
   if sizex == 0:
       sizex = 1
   if sizey== 0:
@@ -39,6 +39,7 @@ def getSonarDistribution(sonarValues):
     sonarArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
   for sonar in range(9):
     for i in range(100):
+        print type(sonarDistx[sonar,i])
         sonarArray[sizex + sonarDistx[sonar,i], sizey + sonarDisty[sonar,i]] = 1
   return sonarArray
 
