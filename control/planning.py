@@ -132,8 +132,9 @@ class AStar(Thread):
       #pose = list(np.argwhere(distribution == np.amax(distribution))[0, :])
       # plan the flow map on that position
       #self.computePath(pose)
-      self.computePath(np.array([0,0,0]))
-      print "[PLANNING] process time:", time.time() - currTime
+      if type(self.nextGoal) != type(None):
+        self.computePath(np.array([0,0,0]))
+        print "[PLANNING] process time:", time.time() - currTime
 
   def stop(self):
     self.stopstate = True

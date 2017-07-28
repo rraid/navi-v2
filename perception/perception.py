@@ -140,24 +140,26 @@ def getCompassDistribution(degreesFromNorth):
   return np.reshape(distribution, (distribution.shape[0], ))
 
 class Perception(Thread):
-  def __init__(self):
+  def __init__(self, pathmap):
     currTime = time.time()
     self.localizer = Localizer()
     self.mapper = GridMap()
     self.detector = ObjectDetector()
     self.pathmap = None
     self.stopstate = False
-
-  def loadMap(self, pathmap):
     self.pathmap = pathmap
+    self.collisions = np.zeros(self.pathmap.shape[:2])
     self.localizer.initializeUniformly(self.pathmap.shape[:2])
     self.mapper.initializeEmpty(self.pathmap.shape[:2])
-    self.setObjects([]) # no objects for now, we can use them later
+    self.detector.setObjects([]) # no objects for now, we can use them later
+
+  def getCollisions(self):
+    return np.copy(self.collisions)
 
   def run(self):
     lastTime = time.time()
     while not self.stopstate: # spin thread
-      collisions = getCollisionDsitribution(devhub.getSonarReadings(), \
+      self.collisions = getCollisionDsitribution(devhub.getSonarReadings(), \
           devhub.getLidarReadings(), devhub.getZEDDepthColumns())
       if type(devhub.depthImage) != type(None) and devhub.depthImage != [] and \
          type(devhub.rgbImage) != type(None) and devhub.colorImage != []:
@@ -168,8 +170,8 @@ class Perception(Thread):
       self.localizer.setObservation( \
         getGPSDistribution(devhub.getGPSLocation()), \
         getCompassDistribution(devhub.getCompassOrientation()), \
-        collisions)
-      self.mapper.setCollisions(collisions)
+        self.collisions)
+      self.mapper.setCollisions(self.collisions)
       currTime = time.time()
       print "[PERCEPTION] process time:", currTime - lastTime
       lastTime = currTime

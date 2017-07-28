@@ -32,7 +32,8 @@ def spinAround(dTheta, dt):
   vel = np.clip(T * 2.0 * robot_radius / K, -1.0, 1.0)
   return -vel, vel
 
-def getWheelSpeeds(position, planner):
+def getWheelSpeeds(perception, planner):
+  position = perception.localizer.predict()
   pose = list(np.argwhere(position == np.amax(position))[0, :])
   traj = getTrajectory(pose, 7, planner) # 7 step lookahead
   halt = sum([np.array_equal(np.array([0, 0]), t) for t in traj])
