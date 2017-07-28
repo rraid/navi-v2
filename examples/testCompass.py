@@ -2,15 +2,12 @@ import sys
 sys.path.append("../perception/")
 import perception
 import signal
-
-stopTest = False
-def stopsigHandler(signo, frame):
-  stopTest = True
-  sys.exit(0)
+import matplotlib.pyplot as plt
+import numpy as np
 
 if __name__ == "__main__":
-  signal.signal(signal.SIGINT, stopsigHandler)
-  print "Press Ctrl+C to stop"
-
-  while not stopTest:
-    print perception.getCompassDistribution(360)
+  distribution = perception.getCompassDistribution(0)
+  x = np.arange(len(distribution))
+  plt.bar(x, distribution)
+  plt.ylim([0.0, 1.0])
+  plt.show()
