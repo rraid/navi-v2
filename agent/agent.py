@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
   # use the planner to do some control
   while not stopSig:
-    planner.setConstraintSpace(perceptor.getCollisions())
+    planner.setConstraintSpace(perceptor)
     leftSpeed, rightSpeed = control.getWheelSpeeds(perceptor, planner)
     devhub.setMotorVelocity(leftSpeed, rightSpeed)
 

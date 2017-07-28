@@ -15,6 +15,7 @@ class AStar(Thread):
     self.energyCost = 0.01
     self.nextGoal = None
     #self.self = cv2.imread('robot.png')
+    #self.localizer = None
     self.xPotential = np.zeros(pathmap.shape[:2]) # flow map
     self.yPotential = np.zeros(pathmap.shape[:2])
     self.pathmap = pathmap
@@ -108,10 +109,11 @@ class AStar(Thread):
   def getNextState(pose):
     return (xPotential[pose[0]] + pose[0], yPotential[pose[1]] + pose[1]])
 
-  def setLocalizer(self, localizer):
-    self.localizer = localizer
+  #def setLocalizer(self, localizer):
+  #  self.localizer = localizer
 
-  def setConstraintSpace(self, collisionSpace):
+  def setConstraintSpace(self, perception):
+    collisionSpace = perception.mapper.predict()
     # hack for the planner to plan faster
     robotMask = np.ones((3, 3))
     collisionSpace = convolve2d(collisionSpace, robotMask, mode="same")
