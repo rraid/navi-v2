@@ -1,16 +1,17 @@
 import sys
 sys.path.append("../perception")
 import perception
+import numpy as np
 
 def displayDistribution(name, grid):
   import matplotlib.pyplot as plt
   from matplotlib import cm
 
-  plt.imshow(name, np.flipud(grid) * 255.0, cmap=cm.gray)
+  plt.imshow(np.flipud(grid) * 255.0, cmap=cm.gray)
   plt.show()
 
 
-values = [50,50,50,50,50,50,50,50,50]
+values = [50,50,50,80,50,50,50,50,50]
 
 grid = perception.getSonarDistribution(values)
 displayDistribution("Sonar", grid)
