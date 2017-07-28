@@ -23,38 +23,15 @@ def approximateSlope(pose, traj):
 def moveForward(distance, dt):
   K = 2.0 * math.pi * wheel_radius * RPM / 60.0
   F = distance / dt
-  vel = F * 2.0 / K
-  if vel < -1.0:
-    vel = -1.0
-  elif vel > 1.0:
-    vel = 1.0
+  vel = np.clip(F * 2.0 / K, -1.0, 1.0)
   return vel, vel
 
 def spinAround(dTheta, dt):
   K = 2.0 * math.pi * wheel_radius * RPM / 60.0
   T = dTheta * math.pi / (180.0 * dt)
-  vel = T * 2.0 * robot_radius / K
-  if vel < -1.0:
-    vel = -1.0
-  elif vel > 1.0:
-    vel = 1.0
+  vel = np.clip(T * 2.0 * robot_radius / K, -1.0, 1.0)
   return -vel, vel
 
-def wheelSpeed(rpm):
-  w = 2 * math.pi * wheel_radius * rpm / 60.0
-  return w
-
-def getWheelSpeeds(left, right):
-  left = wheelSpeed(left * RPM)
-  right = wheelSpeed(right * RPM)
+def getWheelSpeeds(position, planner):
+  traj = getTrajectory(planner)
   return left, right
-
-def forwardSpeed(left, right):
-  left, right = getWheelSpeeds(left, right)
-  speed = (left + right) / 2.0
-  return speed
-
-def rotatingSpeed(left, right):
-  left, right = getWheelSpeeds(left, right)
-  angular_speed = (right - left) / (2.0 * robot_radius)
-  return angular_speed

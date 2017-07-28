@@ -4,11 +4,13 @@ from scipy.signal import convolve2d, correlate2d
 from scipy.ndimage.interpolate import rotate
 import cv2
 from threading import Thread
+import sys
+sys.path.append("../control/control.py")
 
 def patchSSD2d(in1, in2, mode="same", boundary="fill"):
   assert len(in1.shape) == 2
   assert len(in2.shape) == 2
-  totWeight = float(in2.shape[0] * in2.shape[1])
+  totWeight = float(np.prod(in2.shape))
   B2 = np.sum(np.multiply(in2, in2))
   AB = 2.0 * correlate2d(in1, in2, mode=mode, boundary=boundary)
   A2 = np.multiply(in1, in1)
@@ -37,20 +39,18 @@ class Localizer(Thread):
     dt = currTime - self.timeUpdated
     self.timeUpdated = currTime
     # use the velocity model (Probabilistic Robotics 5.2)
-    wheel_radius = 0.14
-    robot_radius = 0.343
-    rpm = 5700
-    vel = lambda k: 2.0 * math.pi * wheel_radius * rpm * k / 60.0
-    l = vel(self.left)
-    r = vel(self.right)
+    vel = 2.0 * math.pi * control.wheel_radius * control.RPM / 60.0
+    l = vel * self.left
+    r = vel * self.right
     v = (l + r) / 2.0
-    w = (r - l) / (2.0 * robot_radius)
+    w = (r - l) / (2.0 * control.robot_radius)
     # apply a skewed gaussian on the forward motion
-    kernel = np.zeros((65,65))
-    for i in range(kernel.shape[0]):
-      for j in range(kernel.shape[1]):
-        kernel[i,j] = math.exp(-1*(1/(20*dt+1e-6))*(((i-32-v)**2) + ((j-32)**2)))
-    for theta in self.state.size[2]:
+    x = np.arange(-32, 33, 1)
+    y = np.arange(-32, 33, 1)
+    x, y = meshgrid(x, y)
+    kernel = np.exp(-1.0 / (20 * dt + 1e-6) * \
+        ((y - v) ** 2.0 + np.multiply(x, x)))
+    for theta in range(self.state.shape[2]):
       self.state[:,:,theta] = \
           convolve2d(self.state, rotate(kernel, theta * 10), mode="same")
 
@@ -65,11 +65,15 @@ class Localizer(Thread):
     temp = convolve2d(temp, G, mode="same")
     self.state = np.reshape(temp, self.state.shape)
 
+    if np.sum(self.state) == 0.0:
+      print "[LOCALIZER] Error: probability for position was 0, resetting"
+      self.state = 1.0 / np.prod(self.state.shape)
+
     self.left = left
     self.right = right
 
   def observePosition(self, gps, compass, collisions, grid):
-    for theta in range(self.state.shape[2])
+    for theta in range(self.state.shape[2]):
       self.state[:,:,theta] = \
           np.multiply(self.state[:,:,theta], gps) * compass[theta]
       self.state[:,:,theta] = np.multiply(self.state[:,:,theta],

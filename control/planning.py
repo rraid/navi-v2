@@ -6,66 +6,55 @@ from scipy.ndimage.interpolate import rotate
 #         NW = 4  SW = 5  SE = 6  NE = 7
 class AStar(Thread):
   rotate = np.array([(0,1),(-1,0),(0,-1),(1,0),(-1,1),(-1,-1),(1,-1),(1,1)])
-  angle  = np.array([0, 270, 180, 90, 315, 225, 135, 45])
+  angle  = np.array([math.atan2(p[1], p[0]) * 180 / math.pi for p in rotate])
   
-  def __init__(self):
+  def __init__(self, pathmap):
     Thread.__init__(self)
     self.stopstate = False
     self.c_space = None
     self.energyCost = 0.01
     self.nextGoal = None
-    self.self = cv2.imread('robot.png')
-    # create a variable to store the localizer object by reference
-    self.localizer = None
-    
-  def run(self):
-    while not self.stopstate:
-      # grab the distribution from the localizer
-      distribution = self.localizer.predict()
-      # select the most likely position to start planning on
-      pose = list(np.argwhere(distribution == np.amax(distribution))[0, :])
-      # plan the flow map on that position
-      self.computePath(pose)
-
-  def setLocalizer(self, localizer):
-    self.localizer = localizer
-
-  def setConstraintSpace(self, pathmap, collisionSpace):
-    self.c_space = pathmap + collisionSpace
+    #self.self = cv2.imread('robot.png')
+    self.xPotential = np.zeros(pathmap.shape[:2]) # flow map
+    self.yPotential = np.zeros(pathmap.shape[:2])
+    self.pathmap = pathmap
 
   def setNextGoal(self, pose):
     self.nextGoal = pose
 
   def reachedGoal(self, pose):
-    if np.array_equal(pose[0:2],self.nextGoal[0:2]):
-      return True
-    else:
-      return False
+    return np.array_equal(pose[0:2], self.nextGoal[0:2])
 
-  def getValidActions(self, pose):
+  def getValidActions(self, pose, c_space):
     actions = np.zeros(8)
     for action in range(8):
-      cost = getCost(pose,action,1)
-      if cost[0] <.1 and cost[1] <.1:
+      cost = getCost(pose,action,1,c_space)
+      if cost < 0.5:
         actions[action] = 1
     return actions
 
   def getSuccessors(self, pose, action, dt):
-    return (pose[0] + rotation[action], pose[1] + rotation[action], angle[action])
+    return (pose[0] + rotation[action][0], \
+            pose[1] + rotation[action][1], \
+            angle[action])
 
-  def getCost(self, pose, action, dt):
-    cost = np.zeros(2)
-    newPose = getSuccessors(pose,action,dt)
-    rotatedSelf = rotate(self.self,newPose[2])
-    rotSizex,rotSize_y = rotatedSelf.shape[0]/2,rotatedSelf.shape[1]/2
+  def getCost(self, pose, action, dt, c_space):
+    #cost = np.zeros(2)
+    #newPose = getSuccessors(pose,action,dt)
+    #rotatedSelf = rotate(self.self,newPose[2])
+    #rotSizex,rotSize_y = rotatedSelf.shape[0]/2,rotatedSelf.shape[1]/2
     
-    cost[0] = np.multiply(rotatedSelf, self.c_space[pose[0]-rotSize_x:pose[0]+rotSize_x, pose[1]-rotSize_y:pose[1]+rotSize_y])
+    #cost[0] = np.multiply(rotatedSelf, self.c_space[pose[0]-rotSize_x:pose[0]+rotSize_x, pose[1]-rotSize_y:pose[1]+rotSize_y])
     
-    cost[1] = np.multiply(rotatedSelf, self.c_space[pose[0]-rotSize_x + rotate[theta,0]:pose[0]+rotSize_x+ rotate[theta,0], pose[1]-rotSize_y+rotate[theta,1]:pose[1]+rotSize_y]+rotate[theta,1])
-    return cost
+    #cost[1] = np.multiply(rotatedSelf, self.c_space[pose[0]-rotSize_x + rotate[theta,0]:pose[0]+rotSize_x+ rotate[theta,0], pose[1]-rotSize_y+rotate[theta,1]:pose[1]+rotSize_y]+rotate[theta,1])
 
-  def distanceCost(self, pose1):
-    return numpy.linalg.norm(self.nestGoal[0:2]-pose1[0:2]) * self.energyCost
+    # make it simple in order to speed things up, do not account for theta :(
+    x = pose[0] + rotate[action][0]
+    y = pose[1] + rotate[action][1]
+    return c_space[y, x] * self.energy_cost
+
+  def distanceCost(self, pose1, pose2):
+    return np.linalg.norm(pose2[0:2]-pose1[0:2]) * self.energyCost
 
   def retraceParents(self,node):
     path = np.empty(0)
@@ -75,58 +64,75 @@ class AStar(Thread):
     return path
 
   def computePath(self, pose):
-    closedSet = np.empty(0)
-    orthogonal = 1
-    diagonal = 1.4
-    start = Node(0,distanceCost(pose[0:2]),None,pose[0:2])
-    openSet = np.array([start])
-    while not openSet.empty():
-      current = min(openSet, key=lambda a: a.getF())
-      if reachedGoal(current.position):
-        return retraceParents(current)
-        
-      x,y = current.position
-      isValid = getValidActions((x,y))
-      pos = np.add(rotate,(x,y))
-      for theta in range(8):
-        if isValid(theta) == False:
+    closed = np.zeros(self.c_space.shape)
+    opened = []
+    gScore = np.zeros(self.c_space.shape)
+    fScore = np.zeros(self.c_shape.shape)
+    numleft = np.prod(self.c_space.shape)
+    xPotential = np.zeros(self.pathmap.shape[:2])
+    yPotential = np.zeros(self.pathmap.shape[:2])
+    c_space = np.copy(self.c_space)
+
+    opened.append((self.nextGoal[:2], 0))
+    while len(opened) > 0:
+      # this can be parallelizable on a GPU, instead of 1 do k kernel calls
+      minitem = min(opened, key=lambda s: s[1])
+      opened.remove(minitem)
+      current = minitem[0]
+      #if np.array_equal(current, pose[:2]):
+      #  return retraceParents(current)
+      closed[current[1], current[0]] = 1
+      validActions = self.getValidActions(pose, c_space)
+      for action in range(len(validActions)):
+        if validActions[action] != 1:
           continue
-          
-        if direction < 4:
-          travel = orthogonal
-        else:
-          travel = diagonal
-          
-        for check in closedSet:
-          if pos[theta] == check.position:
-            break
-        else:
-          for check in openSet:
-            if pos[theta] == check.position:
-              newG = current.g + travel
-              if newG > check.g:
-                check.g = newG
-                check.parent = current
-                break    
-          else:
-            np.append(openSet,Node(distanceCost(pos[theta]),current.g+travel,current,pos[theta]))
-            
-      np.append(closedSet,current)
-      openSet = np.delete(openSet,np.argwhere(openSet==current))
-      
-    else:
-      print "No Path Found"
-    
+        successor = getSuccessors(current, action, 1)[:2]
+        if closed[successor[1], successor[0]] == 1:
+          continue
+        tentative_gScore = gScore[current[1], current[0]] + \
+            self.getCost(current, successor)
+        tentative_fScore = tentative_gScore + \
+            self.distanceCost(successor, pose[:2])
+        if sum([np.array_equal(successor, n) for n in opened]) == 0:
+          opened.append((successor, tentative_fScore))
+        elif tentative_gScore >= gScore[successor[1], successor[0]]:
+          continue
+        xPotential = current[0] - successor[0]
+        yPotential = current[1] - successor[1]
+        gScore[successor[1], successor[0]] = tentative_gScore
+        fScore[successor[1], successor[0]] = tentative_fScore
+
+    self.xPotential = xPotential
+    self.yPotential = yPotential
+
+  def getNextState(pose):
+    return (xPotential[pose[0]] + pose[0], yPotential[pose[1]] + pose[1]])
+
+  def setLocalizer(self, localizer):
+    self.localizer = localizer
+
+  def setConstraintSpace(self, collisionSpace):
+    # hack for the planner to plan faster
+    robotMask = np.ones((3, 3))
+    collisionSpace = convolve2d(collisionSpace, robotMask, mode="same")
+    self.c_space = pathmap + collisionSpace
+    # set up walls
+    self.c_space[:,0] = 1
+    self.c_space[:,self.c_space.shape[1]-1] = 1
+    self.c_space[0,:] = 1
+    self.c_space[self.c_space.shape[0]-1,:] = 1
+
+  def run(self):
+    lastTime = time.time()
+    while not self.stopstate:
+      currTime = time.time()
+      # grab the distribution from the localizer
+      distribution = self.localizer.predict()
+      # select the most likely position to start planning on
+      pose = list(np.argwhere(distribution == np.amax(distribution))[0, :])
+      # plan the flow map on that position
+      self.computePath(pose)
+      print "[PLANNING] process time:", time.time() - currTime
+
   def stop(self):
     self.stopstate = True
-    
-    
-class Node():
-  def __init__(self,g,h,parent,position):
-    self.g = g
-    self.h = h
-    self.parent = parent
-    self.position = position
-  def getF(self):
-    return self.g + self.h
-  

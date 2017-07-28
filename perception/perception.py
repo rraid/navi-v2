@@ -145,13 +145,13 @@ class Perception(Thread):
     self.localizer = Localizer()
     self.mapper = GridMap()
     self.detector = ObjectDetector()
-    self.imageName = None
+    self.pathmap = None
     self.stopstate = False
 
-  def loadMap(self, imageName):
-    self.imageName = imageName
-    self.localizer.initializeUniformly(self.imageName.shape[:2])
-    self.mapper.initializeEmpty(self.imageName.shape[:2])
+  def loadMap(self, pathmap):
+    self.pathmap = pathmap
+    self.localizer.initializeUniformly(self.pathmap.shape[:2])
+    self.mapper.initializeEmpty(self.pathmap.shape[:2])
     self.setObjects([]) # no objects for now, we can use them later
 
   def run(self):
