@@ -3,6 +3,7 @@ sys.path.append("../perception/")
 import perception
 import cv2
 import signal
+import numpy as np
 
 stopTest = False
 def stopsigHandler(signo, frame):
@@ -11,9 +12,10 @@ def stopsigHandler(signo, frame):
 
 if __name__ == "__main__":
   signal.signal(signal.SIGINT, stopsigHandler)
-  print "Press Ctrl+C to stop"
+  print("Press Ctrl+C to stop")
 
   while not stopTest:
-    cv2.imshow("GPS", perception.getGPSDistribution(124, 150) * 255.0)
+    cv2.imshow("GPS",
+        np.flipud(perception.getGPSDistribution((124, 150)) * 255.0))
 
     cv2.waitKey(30)
