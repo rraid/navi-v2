@@ -117,21 +117,22 @@ class AStar(Thread):
     collisionSpace = convolve2d(collisionSpace, robotMask, mode="same")
     self.c_space = pathmap + collisionSpace
     # set up walls
-    self.c_space[:,0] = 1
-    self.c_space[:,self.c_space.shape[1]-1] = 1
-    self.c_space[0,:] = 1
-    self.c_space[self.c_space.shape[0]-1,:] = 1
+    self.c_space[:,0] = 1.0
+    self.c_space[:,self.c_space.shape[1]-1] = 1.0
+    self.c_space[0,:] = 1.0
+    self.c_space[self.c_space.shape[0]-1,:] = 1.0
 
   def run(self):
     lastTime = time.time()
     while not self.stopstate:
       currTime = time.time()
       # grab the distribution from the localizer
-      distribution = self.localizer.predict()
+      #distribution = self.localizer.predict()
       # select the most likely position to start planning on
-      pose = list(np.argwhere(distribution == np.amax(distribution))[0, :])
+      #pose = list(np.argwhere(distribution == np.amax(distribution))[0, :])
       # plan the flow map on that position
-      self.computePath(pose)
+      #self.computePath(pose)
+      self.computePath(np.array([0,0,0]))
       print "[PLANNING] process time:", time.time() - currTime
 
   def stop(self):
