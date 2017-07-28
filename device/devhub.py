@@ -109,7 +109,7 @@ class ArduinoListener(Thread):
             
   def writeSerial(self):
     global motorVelocity
-    writeBuff = "[" + motorVelocity[0] + "," + motorVelocity[1] + "]\n"
+    writeBuff = "[" + int(motorVelocity[0]*100) + "," + int(motorVelocity[1]*100) + "]\n"
     self.arduino.write(writeBuff)
     
   def stop(self):
