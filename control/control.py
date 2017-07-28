@@ -33,5 +33,14 @@ def spinAround(dTheta, dt):
   return -vel, vel
 
 def getWheelSpeeds(position, planner):
-  traj = getTrajectory(planner)
+  pose = list(np.argwhere(position == np.amax(position))[0, :])
+  traj = getTrajectory(pose, 7, planner) # 7 step lookahead
+  halt = sum([np.array_equal(np.array([0, 0]), t) for t in traj])
+  if halt > 0: # there were some commands to halt and not move
+    return 0.0, 0.0
+  dist, angle = approximateSlope(pose, traj)
+  left1, right1 = moveForward(dist, 1.0)
+  left2, right2 = spinAround(angle, 1.0)
+  left = 0.6 * left1 + 0.4 * left2
+  right = 0.6 * right1 + 0.4 * right2
   return left, right
