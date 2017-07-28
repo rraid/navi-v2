@@ -1,26 +1,23 @@
+import sys
+sys.path.append("../device")
+import devhub
 import math
 import numpy as np
 from scipy.signal import convolve2d, correlate2d
 from scipy.ndimage.interpolate import rotate
-from PIL, import Image, ImageDraw
 import chilipy
 import cv2
+import time
 
 #Top four sonars from left to right followed by
 #bottom five sonars from left to right
 sonarAngle = np.array([-20, -10 , 10, -20, -20, -10, 0, 10, 20])
 
-def patchSSD2d(in1, in2, mode="same", boundary="fill"):
-  assert len(in1.shape) == 2
-  assert len(in2.shape) == 2
-  totWeight = float(in2.shape[0] * in2.shape[1])
-  B2 = np.sum(np.multiply(in2, in2))
-  AB = 2.0 * correlate2d(in1, in2, mode=mode, boundary=boundary)
-  A2 = np.multiply(in1, in1)
-  sumsq = (B2 - AB + A2) / totWeight
-  # for some reason this can be negative, try to check
-  assert np.min(sumsq) >= 0.0
-  return sumsq
+_X = np.arange(-9.0, 9.5, 0.5)
+_Y = np.arange(-9.0, 9.5, 0.5)
+_X, _Y = np.meshgrid(_X, _Y)
+GPSD = np.exp(-(_X ** 2.0 + _Y ** 2.0) / (2.0 * 2.5))
+GPSD /= np.sum(GPSD)
 
 def getSonarDistribution(sonarValues):
   sonarDistx = np.zeros((9,100))
@@ -105,27 +102,22 @@ def getCollisionDistribution(sonar, lidar, zed):
   sensorSum = addMatrixFromCenter(sensorSum,zed)
   return sensorSum
 
-def getGPSDistribution(x, y):
+def getGPSDistribution(pos):
+  global GPSD
   shape = [500, 500]
   offset = [0, 0] # lat, long
-  x -= offset[0]
-  y -= offset[1]
+  x = pos[0] - offset[0]
+  y = pos[1] - offset[1]
 
   if x <= 0 or x > shape[0] or y < 0 or y >= shape[1]:
     print "Error: GPS distribution out of bounds"
     return np.array([[]]) # no distribution
 
-  X = np.arange(-9.0, 9.5, 0.5)
-  Y = np.arange(-9.0, 9.5, 0.5)
-  X, Y = np.meshgrid(X, Y)
-  G = np.exp(-(X ** 2.0 + Y ** 2.0) / (2.0 * 2.5))
-  G /= np.sum(G)
-
   x_ = x
   y_ = shape[1] - y - 1
   distribution = np.zeros(shape, dtype=np.float32)
   distribution[max(y_ - 18, 0) : min(y_ + 19, shape[1]),
-               max(x_ - 18, 0) : min(x_ + 19, shape[0])] = G
+               max(x_ - 18, 0) : min(x_ + 19, shape[0])] = GPSD
   return distribution 
 
 def getCompassDistribution(degreesFromNorth):
@@ -145,127 +137,42 @@ def getCompassDistribution(degreesFromNorth):
   distribution = np.zeros((36, 1), dtype=np.float32)
   distribution[deg] = 1.0
   distribution = convolve2d(distribution, G, mode="same", boundary="wrap")
-  return distribution
+  return np.reshape(distribution, (distribution.shape[0], ))
 
-class Localizer():
+class Perception(Thread):
   def __init__(self):
-    self.state = None
-    self.left = 0.0
-    self.right = 0.0
-    self.timeUpdated = time.time()
-
-  def initializeUniformly(self, sentShape):
-    self.state = np.ones((sentShape.shape[0],sentShape.shape[1],36))
-    self.state.fill(1/np.sum(self.state))
-
-  def updatePosition(self, left, right):
     currTime = time.time()
-    dt = currTime - self.timeUpdated
-    self.timeUpdated = currTime
-    # use the velocity model (Probabilistic Robotics 5.2)
-    wheel_radius = 0.14
-    robot_radius = 0.343
-    rpm = 5700
-    vel = lambda k: 2.0 * math.pi * wheel_radius * rpm * k / 60.0
-    l = vel(self.left)
-    r = vel(self.right)
-    v = (l + r) / 2.0
-    w = (r - l) / (2.0 * robot_radius)
-    # apply a skewed gaussian on the forward motion
-    kernel = np.zeros((65,65))
-    for i in range(kernel.shape[0]):
-      for j in range(kernel.shape[1]):
-        kernel[i,j] = math.exp(-1*(1/(20*dt+1e-6))*(((i-32-v)**2) + ((j-32)**2)))
-    for theta in self.state.size[2]:
-      self.state[:,:,theta] = convolve2d(
-          self.state, rotate(kernel, theta * 10), mode="same")
+    self.localizer = Localizer()
+    self.mapper = GridMap()
+    self.detector = ObjectDetector()
+    self.imageName = None
+    self.stopstate = False
 
-    # apply a gaussian on the angular motion
-    D = np.arange(-40, 50, 10.0)
-    G = np.exp(-((D - w) ** 2.0) / (2.0 * 5.0))
-    G = np.reshape(G, (1, G.shape[0]))
-    G /= np.sum(G)
+  def loadMap(self, imageName):
+    self.imageName = imageName
+    self.localizer.initializeUniformly(self.imageName.shape[:2])
+    self.mapper.initializeEmpty(self.imageName.shape[:2])
+    self.setObjects([]) # no objects for now, we can use them later
 
-    temp = np.reshape(self.state,
-        (self.state.shape[0] * self.state.shape[1], self.state.shape[2]))
-    temp = convolve2d(temp, G, mode="same")
-    self.state = np.reshape(temp, self.state.shape)
+  def run(self):
+    lastTime = time.time()
+    while not self.stopstate: # spin thread
+      collisions = getCollisionDsitribution(devhub.getSonarReadings(), \
+          devhub.getLidarReadings(), devhub.getZEDDepthColumns())
+      if type(devhub.depthImage) != type(None) and devhub.depthImage != [] and \
+         type(devhub.rgbImage) != type(None) and devhub.colorImage != []:
+        self.detector.setImages(devhub.colorImage, devhub.depthImage)
+      self.localizer.setGrid(self.mapper.predict())
+      self.mapper.setPositions(self.localizer.predict())
+      self.localizer.setSpeed(devhub.leftSpeed, devhub.rightSpeed)
+      self.localizer.setObservation( \
+        getGPSDistribution(devhub.getGPSLocation()), \
+        getCompassDistribution(devhub.getCompassOrientation()), \
+        collisions)
+      self.mapper.setCollisions(collisions)
+      currTime = time.time()
+      print "[PERCEPTION] process time:", currTime - lastTime
+      lastTime = currTime
 
-    self.left = left
-    self.right = right
-
-  def observePosition(self, gps, compass, collisions):
-    for theta in range(self.state.shape[2])
-      self.state[:,:,theta] = \
-          np.multiply(self.state[:,:,theta], gps) * compass[theta]
-      self.state[:,:,theta] = patchSSD2d(
-          self.state, rotate(collisions, theta * 10), mode="same")
-
-  def topPercentPredict(self, percent):
-    return np.argwhere(self.state>percent)
-
-  def predict(self):
-    # return a copy of the distribution
-    self.updatePosition(self.left, self.right)
-    return self.state[:,:,:]
-
-class GridMap():
-  def __init__(self, decay_rate=0.5):
-    self.x_inc = 0.5
-    self.x_meters = 0
-    self.y_inc = 0.5
-    self.y_meters = 0
-    self.theta_inc = 10
-    self.n_theta = 36
-    self.decay_rate = decay_rate
-    self.grid = None
-    self.timeUpdated = time.time()
-
-  def initializeEmpty(self, x_meters, y_meters):
-    self.x_meters = x_meters
-    self.y_meters = y_meters
-    self.grid = np.zeros((int(y_meters / self.y_inc),
-                          int(x_meters / self.x_inc)), dtype=np.float32)
-
-  def updateCollisions(self, localizer, collisions):
-    assert type(self.grid) != type(None)
-    # just lower the probability of all other collisions in the space wrt. time
-    currTime = time.time()
-    dt = currTime - self.timeUpdated
-    self.timeUpdated = currTime
-    self.grid *= math.exp(-self.decay_rate * dt)
-
-    # convolve the collisions with the localizer and add it in
-    positions = localizer.predict()
-    assert(np.sum(positions) == 1.0) # be careful! super slow
-    obstacles = np.zeros((positions.shape[0], positions.shape[1]))
-    for i in range(positionDistribution.shape[2]):
-      obstacles += convolve2d(positions[:,:,i], rotate(collisions, 10 * i))
-
-    # add collisions
-    self.grid = np.clip(self.grid + obstacles, 0.0, 1.0)
-
-  def predict(self):
-    return self.grid
-
-class ObjectDetector():
-  def __init__(self):
-    self.tags = dict()
-
-  def setObjects(self, objectNames):
-    for obj in objectNames:
-      self.tags.update({obj:None})
-
-  def observe(self, rgbImage,depthImage):
-    grayImage = cv2.cvtColor(rgbImage, cv2.COLOR_BGR2GRAY))
-    allTags = chili.find(grayImage)
-    for tag in self.tags:
-      corners = numpy.array(allTags.get(tag))
-      midpoint = (corners[2:4] - corners[0:2]) - (corners[6:8] - corners[4:6])
-      ##Couldnt think of a good way to calculate the sum of any quadrilatiral,
-      ##so i just returned the depth at the midpoint
-      depth = depthImage[(midpoint[0],midpoint[1])]
-      self.tags[tag] = numpy.array((midpoint,depth))
-
-  def detect(self):
-    return self.tags
+  def stop(self):
+    self.stopstate = True
