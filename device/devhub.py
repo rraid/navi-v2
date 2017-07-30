@@ -4,6 +4,7 @@ import rospy as ros
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import LaserScan
 from threading import Thread, Event
+from cv_bridge import CvBridge
 import time
 import struct
 import cv2
@@ -49,7 +50,7 @@ def setMotorVelocity(left, right):
 
 def lidarCallbackHandler(scan):
   global lidarReadings
-  lidarReadings = len(scan.intensities)
+  lidarReadings = scan.intensities
 
 
 def zedDepthCallbackHandler(frame):
@@ -64,7 +65,9 @@ def zedDepthCallbackHandler(frame):
   
 def zedImageCallbackHandler(frame):
   global colorImage
-  colorImage = np.reshape(np.fromstring(frame.data, dtype=np.float32),(frame.height,frame.width))
+  colorImage = np.asarray(CvBridge().imgmsg_to_cv2(frame))
+  #cv2.imshow('img',colorImage)
+  #cv2.waitKey(30)
 
 class ArduinoListener(Thread):
 
@@ -150,10 +153,10 @@ class ROSListener(Thread):
 def init():
   global arduinoMega
   global arduinoUno
-  arduinoMega = ArduinoListener("ttyACM0", False)
-  arduinoMega.start()
-  arduinoUno = ArduinoListener("ttyACM1", True)
-  arduinoUno.start()
+  #arduinoMega = ArduinoListener("ttyACM3", False)
+  #arduinoMega.start()
+  #arduinoUno = ArduinoListener("ttyACM1", True)
+  #arduinoUno.start()
   rosReader = ROSListener()
   rosReader.start()
 
