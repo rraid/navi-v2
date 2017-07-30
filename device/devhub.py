@@ -21,7 +21,8 @@ heading = None
 
 motorVelocity = [0,0]
 
-arduinoDevice = None
+arduinoMega = None
+arduinoUno = None
 rosReader = None
 
 def getSonarReadings():
@@ -40,8 +41,8 @@ def getZEDDepthColumns():
   return depthColumns
 
 def getCompassOrientation():
-  global compassReading
-  return compassReading
+  global heading
+  return heading
 
 def setMotorVelocity(left, right):
   motorVelocity = [left,right]
@@ -61,55 +62,72 @@ def zedDepthCallbackHandler(frame):
   #cv2.imshow('img',depthColumns)
   #cv2.waitKey(30)
   
-def zedDepthCallbackHandler(frame):
+def zedImageCallbackHandler(frame):
   global colorImage
   colorImage = np.reshape(np.fromstring(frame.data, dtype=np.float32),(frame.height,frame.width))
 
 class ArduinoListener(Thread):
 
-  #def __init__(self, idList):
-  def __init__(self):
+  def __init__(self, idName, control):
     print "Ard. thread Started"
     Thread.__init__(self)
-    #self.idList = idList
-    self.arduino = serial.Serial('/dev/ttyACM0',9600)
+    self.arduino = serial.Serial("/dev/" + idName ,9600)
     self.stopstate = False
+    self.control = control
 
   def run(self):
     while not self.stopstate:
       self.readSerial()
-      self.writeSerial()
-      time.sleep(0.1) # 10 MHz refresh
+      if(self.control):
+        self.writeSerial()
+      #time.sleep(0.1) # 10 MHz refresh
 
   def readSerial(self):
     global sonarReadings
     global latitude
     global longitude
+    global heading
     
     if self.arduino.in_waiting > 0:
       buff = None;
-      buff = self.arduino.read(self.arduino.in_waiting)
+      buff = self.arduino.readline()
       prev = 1
       count = 0
+      devType = None
       if buff[0] == '[':
         for ptr in range(len(buff)):
           if buff[ptr] == ',' or buff[ptr] == ']':
-            if count < 9:
-              sonarReadings[count] = float(buff[prev:ptr])
+            if count == 0:
+              devType = buff[prev:ptr]
               count += 1
               prev = ptr + 1
-            elif count == 9:
-              latitude = float(buff[prev:ptr])
-              count += 1
-              prev = ptr + 1
-            elif count ==10:
-              longitude = float(buff[prev:ptr])
+            elif devType == "mega":
+              if count < 10:
+                try:
+                  sonarReadings[count-1] = float(buff[prev:ptr])
+                except ValueError:
+                  print "Serial Read Incorrectly"
+                  break
+                count += 1
+                prev = ptr + 1
+              elif count == 10:
+                latitude = float(buff[prev:ptr])
+                count += 1
+                prev = ptr + 1
+              elif count ==11:
+                longitude = float(buff[prev:ptr])
+            elif devType == "uno":
+              try:
+                heading = float(buff[prev:ptr])
+              except ValueError:
+                print "Serial Read Incorrectly"
+                break
             else:
-              heading = float(buff[prev:ptr])
+              print "Couldnt identify device"
             
   def writeSerial(self):
     global motorVelocity
-    writeBuff = "[" + int(motorVelocity[0]*100) + "," + int(motorVelocity[1]*100) + "]\n"
+    writeBuff = "[" + str(int(motorVelocity[0]*100)) + "," + str(int(motorVelocity[1]*100)) + "]\n"
     self.arduino.write(writeBuff)
     
   def stop(self):
@@ -130,18 +148,22 @@ class ROSListener(Thread):
     ros.spin() # blocks already
 
 def init():
-  global arduinoDevice
-  global rosReader
-  arduinoDevice = ArduinoListener()
-  arduinoDevice.start()
+  global arduinoMega
+  global arduinoUno
+  arduinoMega = ArduinoListener("ttyACM0", False)
+  arduinoMega.start()
+  arduinoUno = ArduinoListener("ttyACM1", True)
+  arduinoUno.start()
   rosReader = ROSListener()
   rosReader.start()
 
 def stop():
-  global arduinoDevice
-  global rosReader
-  arduinoDevice.stop()
-  arduinoDevice.join()
+  global arduinoMega
+  global arduinoUno
+  arduinoMega.stop()
+  arduinoMega.join()
+  arduinoUno.stop()
+  arduinoUno.join()
   ros.signal_shutdown("Ending Process")
   time.sleep(1)
   sys.exit()

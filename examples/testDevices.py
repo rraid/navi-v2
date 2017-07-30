@@ -21,6 +21,7 @@ if __name__ == "__main__":
     print "Lidar:", devhub.getLidarReadings()
     print "Zed:", devhub.getZEDDepthColumns()
     print "GPS:", devhub.getGPSLocation()
+    print "Heading", devhub.getCompassOrientation()
     time.sleep(0.1) # 10 MHz refresh
     #print "Buttons:", devhub.getButtonReadings()
     if testMotors:
