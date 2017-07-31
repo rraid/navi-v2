@@ -69,9 +69,9 @@ class Localizer(Thread):
     update = np.zeros((36, kernel.shape[0], kernel.shape[1]))
     for theta in range(self.state.shape[2]):
       update[theta,:,:] = rotate(kernel, theta * 10, reshape=False)
-    state = mx.nd.array(np.rollaxis(self.state, -1)).as_in_context(mx.gpu(0))\
+    state = mx.nd.array(np.rollaxis(self.state, -1), ctx=mx.gpu(0))\
         .reshape((1, 36, self.state.shape[0], self.state.shape[1]))
-    update = mx.nd.array(update).as_in_context(mx.gpu(0))\
+    update = mx.nd.array(update, ctx=mx.gpu(0))\
         .reshape((1, update.shape[0], update.shape[1], update.shape[2]))
     for theta in range(self.state.shape[2]):
       self.state[:,:,theta] = mx.nd.Convolution(num_filter=1,
@@ -102,7 +102,7 @@ class Localizer(Thread):
     self.right = right
 
   def observePosition(self, gps, compass, collisions, grid):
-    state = mx.nd.array(np.rollaxis(self.state, -1)).as_in_context(mx.gpu(0))\
+    state = mx.nd.array(np.rollaxis(self.state, -1), ctx=mx.gpu(0))\
         .reshape((1, 36, self.state.shape[0], self.state.shape[1]))
     d_gps = mx.nd.array(gps, ctx=mx.gpu(0)).reshape((1, 1, gps.shape[0], gps.shape[1]))
     B2 = np.sum(np.multiply(collisions, collisions))
