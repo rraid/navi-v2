@@ -5,6 +5,6 @@ all:
 		`pkg-config --cflags opencv` `pkg-config --libs opencv` -lchilitags
 
 clean:
-	rm chili.o
-	rm libchili.so
-	rm *.pyc
+	rm -f chili.o
+	rm -f libchili.so
+	rm -f *.pyc

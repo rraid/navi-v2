@@ -1,12 +1,16 @@
 from threading import Thread
-import cv2
-from scipy.ndimage.interpolate import rotate
+from scipy.ndimage.interpolation import rotate
+from scipy.signal import convolve2d
+import numpy as np
+import time
+import math
+from scipy.misc import imresize
 
 #Actions: N = 0   W = 1   S = 2   E = 3
 #         NW = 4  SW = 5  SE = 6  NE = 7
 class AStar(Thread):
-  rotate = np.array([(0,1),(-1,0),(0,-1),(1,0),(-1,1),(-1,-1),(1,-1),(1,1)])
-  angle  = np.array([math.atan2(p[1], p[0]) * 180 / math.pi for p in rotate])
+  rotation = np.array([(0,1),(-1,0),(0,-1),(1,0),(-1,1),(-1,-1),(1,-1),(1,1)])
+  angle = np.array([math.atan2(p[1], p[0]) * 180 / math.pi for p in rotation])
   
   def __init__(self, pathmap):
     Thread.__init__(self)
@@ -14,8 +18,6 @@ class AStar(Thread):
     self.c_space = None
     self.energyCost = 0.01
     self.nextGoal = None
-    #self.self = cv2.imread('robot.png')
-    #self.localizer = None
     self.xPotential = np.zeros(pathmap.shape[:2]) # flow map
     self.yPotential = np.zeros(pathmap.shape[:2])
     self.pathmap = pathmap
@@ -27,32 +29,23 @@ class AStar(Thread):
     return np.array_equal(pose[0:2], self.nextGoal[0:2])
 
   def getValidActions(self, pose, c_space):
-    actions = np.zeros(8)
-    for action in range(8):
-      cost = getCost(pose,action,1,c_space)
+    actions = np.zeros(4)
+    for action in range(4):
+      cost = self.getCost(pose,action,1,c_space)
       if cost < 0.5:
         actions[action] = 1
     return actions
 
   def getSuccessors(self, pose, action, dt):
-    return (pose[0] + rotation[action][0], \
-            pose[1] + rotation[action][1], \
-            angle[action])
+    return (pose[0] + self.rotation[action, 0], \
+            pose[1] + self.rotation[action, 1], \
+            self.angle[action])
 
   def getCost(self, pose, action, dt, c_space):
-    #cost = np.zeros(2)
-    #newPose = getSuccessors(pose,action,dt)
-    #rotatedSelf = rotate(self.self,newPose[2])
-    #rotSizex,rotSize_y = rotatedSelf.shape[0]/2,rotatedSelf.shape[1]/2
-    
-    #cost[0] = np.multiply(rotatedSelf, self.c_space[pose[0]-rotSize_x:pose[0]+rotSize_x, pose[1]-rotSize_y:pose[1]+rotSize_y])
-    
-    #cost[1] = np.multiply(rotatedSelf, self.c_space[pose[0]-rotSize_x + rotate[theta,0]:pose[0]+rotSize_x+ rotate[theta,0], pose[1]-rotSize_y+rotate[theta,1]:pose[1]+rotSize_y]+rotate[theta,1])
-
     # make it simple in order to speed things up, do not account for theta :(
-    x = pose[0] + rotate[action][0]
-    y = pose[1] + rotate[action][1]
-    return c_space[y, x] * self.energy_cost
+    x = pose[0] + self.rotation[action, 0]
+    y = pose[1] + self.rotation[action, 1]
+    return c_space[y, x] + self.energyCost
 
   def distanceCost(self, pose1, pose2):
     return np.linalg.norm(pose2[0:2]-pose1[0:2]) * self.energyCost
@@ -68,7 +61,7 @@ class AStar(Thread):
     closed = np.zeros(self.c_space.shape, dtype=np.uint8)
     opened = []
     gScore = np.zeros(self.c_space.shape, dtype=np.float32)
-    fScore = np.zeros(self.c_shape.shape, dtype=np.float32)
+    fScore = np.zeros(self.c_space.shape, dtype=np.float32)
     xPotential = np.zeros(self.pathmap.shape[:2], dtype=np.int8)
     yPotential = np.zeros(self.pathmap.shape[:2], dtype=np.int8)
     c_space = np.copy(self.c_space)
@@ -82,47 +75,45 @@ class AStar(Thread):
       #if np.array_equal(current, pose[:2]):
       #  return retraceParents(current)
       closed[current[1], current[0]] = 1
-      validActions = self.getValidActions(pose, c_space)
+      validActions = self.getValidActions(current, c_space)
       for action in range(len(validActions)):
         if validActions[action] != 1:
           continue
-        successor = getSuccessors(current, action, 1)[:2]
+        successor = self.getSuccessors(current, action, 1)[:2]
         if closed[successor[1], successor[0]] == 1:
           continue
         tentative_gScore = gScore[current[1], current[0]] + \
-            self.getCost(current, successor)
+            self.getCost(current, action, 1, c_space)
         #tentative_fScore = tentative_gScore + \
         #    self.distanceCost(successor, pose[:2])
         tentative_fScore = tentative_gScore
-        if sum([np.array_equal(successor, n) for n in opened]) == 0:
+        if sum([np.array_equal(successor, n[0]) for n in opened]) == 0:
           opened.append((successor, tentative_fScore))
         elif tentative_gScore >= gScore[successor[1], successor[0]]:
           continue
-        xPotential = current[0] - successor[0]
-        yPotential = current[1] - successor[1]
+        xPotential[successor[1], successor[0]] = current[0] - successor[0]
+        yPotential[successor[1], successor[0]] = current[1] - successor[1]
         gScore[successor[1], successor[0]] = tentative_gScore
         fScore[successor[1], successor[0]] = tentative_fScore
 
     self.xPotential = xPotential
     self.yPotential = yPotential
 
-  def getNextState(pose):
-    return (xPotential[pose[0]] + pose[0], yPotential[pose[1]] + pose[1]])
+  def getNextState(self, pose):
+    return (self.xPotential[pose[1], pose[0]] + pose[0], \
+            self.yPotential[pose[1], pose[0]] + pose[1])
 
-  #def setLocalizer(self, localizer):
-  #  self.localizer = localizer
-
-  def setConstraintSpace(self, perception):
-    collisionSpace = perception.mapper.predict()
+  def setConstraintSpace(self, collisionSpace):
     # hack for the planner to plan faster
     robotMask = np.ones((3, 3))
     collisionSpace = convolve2d(collisionSpace, robotMask, mode="same")
-    self.c_space = pathmap + collisionSpace
+    c_space = (1 - self.pathmap) + collisionSpace
     # set up walls
-    self.c_space[:,0] = 1.0
-    self.c_space[:,self.c_space.shape[1]-1] = 1.0
-    self.c_space[0,:] = 1.0
-    self.c_space[self.c_space.shape[0]-1,:] = 1.0
+    c_space[:,0] = 1.0
+    c_space[:,c_space.shape[1]-1] = 1.0
+    c_space[0,:] = 1.0
+    c_space[c_space.shape[0]-1,:] = 1.0
+    self.c_space = c_space
 
   def run(self):
     lastTime = time.time()
@@ -134,8 +125,8 @@ class AStar(Thread):
       #pose = list(np.argwhere(distribution == np.amax(distribution))[0, :])
       # plan the flow map on that position
       #self.computePath(pose)
-      if type(self.nextGoal) != type(None):
-        self.computePath(np.array([0,0,0]))
+      if type(self.nextGoal) != type(None) and type(self.c_space) != type(None):
+        self.computePath(np.array([0, 0, 0]))
         print "[PLANNING] process time:", time.time() - currTime
 
   def stop(self):
