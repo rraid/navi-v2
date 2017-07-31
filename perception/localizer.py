@@ -22,6 +22,7 @@ def patchSSD2d(in1, in2, mode="same", boundary="fill"):
   # for some reason this can be negative, try to check
   assert np.min(sumsq) >= 0.0
   assert np.max(sumsq) <= 1.0
+  # return np.abs(sumsq)
   return sumsq
 
 class Localizer(Thread):
@@ -104,7 +105,11 @@ class Localizer(Thread):
     state = mx.nd.array(np.rollaxis(self.state, -1)).as_in_context(mx.gpu(0))\
         .reshape((1, 36, self.state.shape[0], self.state.shape[1]))
     d_gps = mx.nd.array(gps, ctx=mx.gpu(0)).reshape((1, 1, gps.shape[0], gps.shape[1]))
+    B2 = np.sum(np.multiply(collisions, collisions))
     for theta in range(self.state.shape[2]):
+      if compass[theta] == 0.0:
+        self.state[:,:,theta].fill(0)
+        continue
       #self.state[:,:,theta] = mx.nd.multiply(compass[theta] * d_gps, \
       #    mx.nd.slice_axis(state, axis=1, begin=theta, end=theta+1))\
       #    .reshape(self.state.shape[:2]).asnumpy()
@@ -114,14 +119,15 @@ class Localizer(Thread):
           ctx=mx.gpu(0)), axis=(0, 1))\
           .reshape((1, 1, collisions.shape[0], collisions.shape[1]))
       totWeight = float(d_collisions.size)
-      B2 = mx.nd.sum(mx.nd.multiply(d_collisions, d_collisions))
+      #B2 = mx.nd.sum(mx.nd.multiply(d_collisions, d_collisions))
       AB = 2.0 * mx.nd.Convolution(F, d_collisions, kernel=collisions.shape,
           no_bias=True, num_filter=1,
           pad=(collisions.shape[0]/2, collisions.shape[1]/2))
       A2 = mx.nd.multiply(F, F)
-      G = 1.0 - (B2 - AB + A2) / totWeight
+      G = 1.0 - ((B2 - AB + A2) / totWeight)
       assert np.min(G.asnumpy()) >= 0.0
       assert np.max(G.asnumpy()) <= 1.0
+      #G = np.abs(G)
       self.state[:,:,theta] = (F * G).reshape(self.state.shape[:2]).asnumpy()
       #self.state[:,:,theta] = np.multiply(F,
       #    1.0 - patchSSD2d(grid, rotate(collisions, theta * 10), mode="same"))
@@ -157,7 +163,7 @@ class Localizer(Thread):
   def run(self):
     while not self.stopstate:
       currTime = time.time()
-      if currTime - self.lastTime < 1.0:
+      if currTime - self.lastTime < 0.1:
         continue
       self.lastTime = currTime
       self.updatePosition(self.newLeftSpeed, self.newRightSpeed)
