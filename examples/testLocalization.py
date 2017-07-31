@@ -54,7 +54,7 @@ if __name__ == "__main__":
     print("observe:", time.time() - start)
 
     print("Showing window")
-    cv2.imshow("window", 1.0 * (np.flipud(np.sum(localize.predict(), axis=2)) > 0))
+    cv2.imshow("window", np.flipud(np.sum(localize.predict(), axis=2)))
     cv2.waitKey(30)
     #time.sleep(1.0)
     robotPos[0] += 2.0

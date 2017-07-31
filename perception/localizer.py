@@ -1,7 +1,6 @@
 import math
 import numpy as np
 from scipy.signal import convolve2d
-from scipy.ndimage.interpolation import rotate
 import cv2
 from threading import Thread
 import sys
@@ -9,6 +8,12 @@ sys.path.append("../control/")
 import control
 import time
 import mxnet as mx
+
+def rotateImage(image, angle):
+  image_center = tuple(np.array(image.shape)/2)
+  rot_mat = cv2.getRotationMatrix2D(image_center,-angle,1.0) # negative due to flipud
+  result = cv2.warpAffine(image, rot_mat, image.shape,flags=cv2.INTER_CUBIC)
+  return result
 
 def patchSSD2d(in1, in2, mode="same", boundary="fill"):
   assert len(in1.shape) == 2
@@ -68,7 +73,7 @@ class Localizer(Thread):
     kernel /= np.sum(kernel)
     update = np.zeros((36, kernel.shape[0], kernel.shape[1]))
     for theta in range(self.state.shape[2]):
-      update[theta,:,:] = rotate(kernel, theta * 10, reshape=False)
+      update[theta,:,:] = rotateImage(kernel, theta * 10)
     state = mx.nd.array(np.rollaxis(self.state, -1), ctx=mx.gpu(0))\
         .reshape((1, 36, self.state.shape[0], self.state.shape[1]))
     update = mx.nd.array(update, ctx=mx.gpu(0))\
@@ -115,8 +120,8 @@ class Localizer(Thread):
       #    .reshape(self.state.shape[:2]).asnumpy()
       F = mx.nd.multiply(compass[theta] * d_gps, \
           mx.nd.slice_axis(state, axis=1, begin=theta, end=theta+1))
-      d_collisions = mx.nd.flip(mx.nd.array(rotate(collisions, theta * 10), \
-          ctx=mx.gpu(0)), axis=(0, 1))\
+      d_collisions = mx.nd.flip(mx.nd.array( \
+          rotateImage(collisions, theta * 10), ctx=mx.gpu(0)), axis=(0, 1))\
           .reshape((1, 1, collisions.shape[0], collisions.shape[1]))
       totWeight = float(d_collisions.size)
       #B2 = mx.nd.sum(mx.nd.multiply(d_collisions, d_collisions))
@@ -130,7 +135,7 @@ class Localizer(Thread):
       #G = np.abs(G)
       self.state[:,:,theta] = (F * G).reshape(self.state.shape[:2]).asnumpy()
       #self.state[:,:,theta] = np.multiply(F,
-      #    1.0 - patchSSD2d(grid, rotate(collisions, theta * 10), mode="same"))
+      #    1.0 - patchSSD2d(grid, rotateImage(collisions, theta * 10), mode="same"))
     self.state /= np.sum(self.state)
 
   def topPercentPredict(self, percent):
