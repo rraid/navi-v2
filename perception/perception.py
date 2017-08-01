@@ -46,13 +46,16 @@ def getSonarDistribution(sonarValues):
     sonarArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
   for sonar in range(9):
     for i in range(100):
-        sonarArray[sizex + sonarDistx[sonar,i], sizey + sonarDisty[sonar,i]] += 1.0
-  return np.clip(sonarArray, 0.0, 1.0)
+
+        sonarArray[sizex + sonarDistx[sonar,i], sizey + sonarDisty[sonar,i]] += 0.01
+  return sonarArray
+
 
 def getLidarDistribution(pts):
   size = len(pts)
   lidarDist = np.zeros((2,size), dtype = np.int)
-  angleDist = np.linspace(-135,135,size)
+  angleDist = np.linspace(135,-135,size)
+
   pts = [pts[i] / 0.5 if validDepth(pts[i]) else 0.0 for i in range(len(pts))]
   for i in range(size):
     if pts[i] == 0.0:
@@ -66,8 +69,8 @@ def getLidarDistribution(pts):
       sizex = 1
   if sizey== 0:
       sizey = 1
-  if sizex > 0 and sizey>0:
-    lidarArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
+  lidarArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
+
   for i in range(size):
     lidarArray[ sizex + lidarDist[0,i],sizey + lidarDist[1,i]] = 1
   return lidarArray
