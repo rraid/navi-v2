@@ -1,4 +1,6 @@
 import sys
+sys.path.append("../device")
+import devhub
 import math
 import numpy as np
 from scipy.signal import convolve2d, correlate2d
@@ -19,11 +21,17 @@ _X, _Y = np.meshgrid(_X, _Y)
 GPSD = np.exp(-(np.multiply(_X, _X) + np.multiply(_Y, _Y)) / (2.0 * 2.5))
 GPSD /= np.sum(GPSD)
 
+def validDepth(d):
+  return d != 0 and d != float("inf") and d != float("-inf") and d != float("nan")
+
 def getSonarDistribution(sonarValues):
   sonarDistx = np.zeros((9,100), dtype = np.int)
   sonarDisty = np.zeros((9,100), dtype = np.int)
   relativeAngle = np.linspace(-7.5,7.5,100)
+  sonarValues = [sonarValues[i] / 0.5 if validDepth(sonarValues[i]) else 0.0 for i in range(len(sonarValues))]
   for i in range(9):
+    if sonarValues[i] == 0.0:
+      continue
     for distribution in range(100):
       sonarDistx[i,distribution] =int(math.cos(math.radians(sonarAngle[i] + relativeAngle[distribution]))* sonarValues[i])
       sonarDisty[i,distribution] =int(math.sin(math.radians(sonarAngle[i] + relativeAngle[distribution]))* sonarValues[i])
@@ -35,18 +43,23 @@ def getSonarDistribution(sonarValues):
   if sizey== 0:
       sizey = 1
   if sizex > 0 and sizey>0:
-
     sonarArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
   for sonar in range(9):
     for i in range(100):
+
         sonarArray[sizex + sonarDistx[sonar,i], sizey + sonarDisty[sonar,i]] += 0.01
   return sonarArray
+
 
 def getLidarDistribution(pts):
   size = len(pts)
   lidarDist = np.zeros((2,size), dtype = np.int)
   angleDist = np.linspace(135,-135,size)
+
+  pts = [pts[i] / 0.5 if validDepth(pts[i]) else 0.0 for i in range(len(pts))]
   for i in range(size):
+    if pts[i] == 0.0:
+      continue
     lidarDist[0,i] = int(math.cos(math.radians(angleDist[i])) * pts[i])
     lidarDist[1,i] = int(math.sin(math.radians(angleDist[i])) * pts[i])
 
@@ -56,8 +69,8 @@ def getLidarDistribution(pts):
       sizex = 1
   if sizey== 0:
       sizey = 1
-      
   lidarArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
+
   for i in range(size):
     lidarArray[ sizex + lidarDist[0,i],sizey + lidarDist[1,i]] = 1
   return lidarArray
@@ -66,7 +79,10 @@ def getZEDDistribution(columns):
   size = len(columns)
   zedDist = np.zeros((2,size), dtype = np.int)
   angleDist = np.linspace(-55,55,size)
+  columns = [columns[i] / 0.5 if validDepth(columns[i]) else 0.0 for i in range(len(columns))]
   for i in range(size):
+    if columns[i] == 0.0:
+      continue
     zedDist[0,i] = int(math.cos(math.radians(angleDist[i])) * columns[i])
     zedDist[1,i] = int(math.sin(math.radians(angleDist[i])) * columns[i])
 
@@ -77,7 +93,6 @@ def getZEDDistribution(columns):
   if sizey== 0:
       sizey = 1
   if sizex > 0 and sizey>0:
-
     zedArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
   for i in range(size):
     zedArray[ sizex + zedDist[0,i],sizey + zedDist[1,i]] += 1
@@ -99,15 +114,18 @@ def getCollisionDistribution(sonar, lidar, zed):
   sensorSum = addMatrixFromCenter(sensorSum,lidar)
   sensorSum = addMatrixFromCenter(sensorSum,sonar)
   sensorSum = addMatrixFromCenter(sensorSum,zed)
-  return sensorSum
+  center = (sensorSum.shape[0] / 2, sensorSum.shape[1] / 2)
+  sensorSum[center[0]-1:center[0]+2, center[1]-1:center[1]+2] = 0.0
+  return np.clip(sensorSum, 0.0, 1.0)
 
 def getGPSDistribution(pos):
   global GPSD
   global mapShape
   shape = mapShape
   offset = [0, 0] # lat, long
-  x = pos[0] - offset[0]
-  y = pos[1] - offset[1]
+  # the 0.5 is because of the map ratio
+  x = int(round((pos[0] - offset[0]) / 0.5))
+  y = int(round((pos[1] - offset[1]) / 0.5))
 
   if x <= 0 or x > shape[0] or y < 0 or y >= shape[1]:
     print("Error: GPS distribution out of bounds")
@@ -134,9 +152,6 @@ def getCompassDistribution(degreesFromNorth):
 
 class Perception(Thread):
   def __init__(self, pathmap):
-    sys.path.append("../device")
-    import devhub
-
     currTime = time.time()
     self.localizer = Localizer()
     self.mapper = GridMap()
@@ -157,8 +172,10 @@ class Perception(Thread):
   def run(self):
     lastTime = time.time()
     while not self.stopstate: # spin thread
-      self.collisions = getCollisionDsitribution(devhub.getSonarReadings(), \
-          devhub.getLidarReadings(), devhub.getZEDDepthColumns())
+      self.collisions = getCollisionDsitribution(
+          getSonarDistribution(devhub.getSonarReadings()), \
+          getLidarDistribution(devhub.getLidarReadings()), \
+          getZEDDistribution(devhub.getZEDDepthColumns()))
       if type(devhub.depthImage) != type(None) and devhub.depthImage != [] and \
          type(devhub.rgbImage) != type(None) and devhub.colorImage != []:
         self.detector.setImages(devhub.colorImage, devhub.depthImage)

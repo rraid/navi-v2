@@ -1,23 +1,20 @@
 import sys
 sys.path.append("../perception/")
-import perception
+import objectdetector
 import cv2
-import signal
-
-stopTest = False
-def stopsigHandler(signo, frame):
-  stopTest = True
-  sys.exit(0)
+import numpy as np
+import time
 
 if __name__ == "__main__":
-  signal.signal(signal.SIGINT, stopsigHandler)
-  print "Press Ctrl+C to stop"
+  colorImage = cv2.imread("sampleImage.png", cv2.IMREAD_COLOR)
+  objdetect = objectdetector.ObjectDetector()
+  objdetect.setObjects([10, 11, 12]) # id's of the chilitags
+  objdetect.start()
 
-  cam = cv2.VideoCapture(0)
-  objdetect = ObjectDetector()
-  objdetect.setObjects([0, 1, 2]) # id's of the chilitags
-
-  while not stopTest:
-    img = cam.read()
-    objdetect.observe(img)
-    print objdetect.detect()
+  depthImage = np.reshape(np.arange(0, np.prod(colorImage.shape[:2]), 1),
+      colorImage.shape[:2])
+  objdetect.setImages(colorImage, depthImage)
+  time.sleep(0.25) # this will have to be changed one day to a promise with timeout
+  tags = objdetect.predict()
+  print(str(tags))
+  objdetect.stop()
