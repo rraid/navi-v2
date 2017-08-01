@@ -3,12 +3,13 @@ import serial
 import rospy as ros
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import LaserScan
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 from cv_bridge import CvBridge
 import time
 import struct
 import cv2
 import sys
+
 
 # Globals
 lidarReadings = []
@@ -43,13 +44,18 @@ def getZEDDepthColumns():
 def getCompassOrientation():
   global heading
   return heading
-
+  
+arduinoWrite = serial.Serial("/dev/ttyACM0" ,9600)
 def setMotorVelocity(left, right):
-  motorVelocity = [left,right]
+  global motorVelocity
+  #motorVelocity = [left,right]
+  writeBuff = "["+ str(int(left*100)) + "," + str(int(right*100)) + "]\n"
+  arduinoWrite.write(writeBuff)
+    
 
 def lidarCallbackHandler(scan):
   global lidarReadings
-  lidarReadings = np.array(scan.ranges) * 2
+  lidarReadings = np.array(scan.ranges)
   # multiplying by to to convert to .5 meter
 
 def zedDepthCallbackHandler(frame):
@@ -70,18 +76,15 @@ def zedImageCallbackHandler(frame):
 
 class ArduinoListener(Thread):
 
-  def __init__(self, idName, control):
+  def __init__(self, idName):
     print "Ard. thread Started"
     Thread.__init__(self)
     self.arduino = serial.Serial("/dev/" + idName ,9600)
     self.stopstate = False
-    self.control = control
 
   def run(self):
     while not self.stopstate:
       self.readSerial()
-      if(self.control):
-        self.writeSerial()
       #time.sleep(0.1) # 10 MHz refresh
 
   def readSerial(self):
@@ -89,7 +92,7 @@ class ArduinoListener(Thread):
     global latitude
     global longitude
     global heading
-    
+
     if self.arduino.in_waiting > 0:
       buff = None;
       buff = self.arduino.readline()
@@ -126,12 +129,7 @@ class ArduinoListener(Thread):
                 break
             else:
               print "Couldnt identify device"
-            
-  def writeSerial(self):
-    global motorVelocity
-    writeBuff = "[" + str(int(motorVelocity[0]*100)) + "," + str(int(motorVelocity[1]*100)) + "]\n"
-    self.arduino.write(writeBuff)
-    
+
   def stop(self):
     self.stopstate = True
 
@@ -152,12 +150,12 @@ class ROSListener(Thread):
 def init():
   global arduinoMega
   global arduinoUno
-  #arduinoMega = ArduinoListener("ttyACM3", False)
-  #arduinoMega.start()
-  #arduinoUno = ArduinoListener("ttyACM1", True)
-  #arduinoUno.start()
-  rosReader = ROSListener()
-  rosReader.start()
+  arduinoMega = ArduinoListener("ttyACM1")
+  arduinoMega.start()
+  arduinoUno = ArduinoListener("ttyACM0")
+  arduinoUno.start()
+ # rosReader = ROSListener()
+ # rosReader.start()
 
 def stop():
   global arduinoMega
@@ -166,6 +164,6 @@ def stop():
   arduinoMega.join()
   arduinoUno.stop()
   arduinoUno.join()
-  ros.signal_shutdown("Ending Process")
+# ros.signal_shutdown("Ending Process")
   time.sleep(1)
   sys.exit()
