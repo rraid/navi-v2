@@ -48,7 +48,8 @@ class AStar(Thread):
     return c_space[y, x] + self.energyCost
 
   def distanceCost(self, pose1, pose2):
-    return np.linalg.norm(pose2[0:2]-pose1[0:2]) * self.energyCost
+    return np.linalg.norm(np.array(pose2[0:2])-np.array(pose1[0:2])) \
+        * self.energyCost
 
   def retraceParents(self,node):
     path = np.empty(0)
@@ -72,8 +73,14 @@ class AStar(Thread):
       minitem = min(opened, key=lambda s: s[1])
       opened.remove(minitem)
       current = minitem[0]
-      #if np.array_equal(current, pose[:2]):
-      #  return retraceParents(current)
+      if np.array_equal(current, np.array(pose[:2])):
+        self.xPotential = xPotential
+        self.yPotential = yPotential
+        return #self.retraceParents(current)
+      # hack close
+      #if np.sum(closed[int(pose[1])-4:int(pose[1])+5,\
+      #    int(pose[0])-4:int(pose[0])+5]) == 81:
+      #  return
       closed[current[1], current[0]] = 1
       validActions = self.getValidActions(current, c_space)
       for action in range(len(validActions)):
@@ -84,9 +91,9 @@ class AStar(Thread):
           continue
         tentative_gScore = gScore[current[1], current[0]] + \
             self.getCost(current, action, 1, c_space)
-        #tentative_fScore = tentative_gScore + \
-        #    self.distanceCost(successor, pose[:2])
-        tentative_fScore = tentative_gScore
+        tentative_fScore = tentative_gScore + \
+            self.distanceCost(successor, pose[:2])
+        #tentative_fScore = tentative_gScore
         if sum([np.array_equal(successor, n[0]) for n in opened]) == 0:
           opened.append((successor, tentative_fScore))
         elif tentative_gScore >= gScore[successor[1], successor[0]]:
@@ -100,8 +107,8 @@ class AStar(Thread):
     self.yPotential = yPotential
 
   def getNextState(self, pose):
-    return (self.xPotential[pose[1], pose[0]] + pose[0], \
-            self.yPotential[pose[1], pose[0]] + pose[1])
+    return (int(self.xPotential[pose[1], pose[0]] + pose[0]), \
+            int(self.yPotential[pose[1], pose[0]] + pose[1]))
 
   def setConstraintSpace(self, collisionSpace):
     # hack for the planner to plan faster

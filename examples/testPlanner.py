@@ -42,6 +42,8 @@ if __name__ == "__main__":
   planner = planning.AStar(world)
   start = (413, 137)
   goal = (327, 686)
+  #start = (1, 1)
+  #goal = (18, 18)
   #start = (16, 16)
   #goal = (288, 288)
   planner.setNextGoal(goal)
