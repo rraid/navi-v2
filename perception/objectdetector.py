@@ -49,7 +49,7 @@ class ObjectDetector(Thread):
       if type(self.rgbImage) != type(None) and len(self.rgbImage) != 0 and \
          type(self.depthImage) != type(None) and len(self.depthImage) != 0:
         self.observe(np.copy(self.rgbImage), np.copy(self.depthImage))
-        print("[OBJDETECT] process time:", time.time() - self.currTime)
+        print("[OBJDETECT] process time:", time.time() - currTime)
 
   def stop(self):
     self.stopstate = True
