@@ -34,7 +34,6 @@ def getGPSLocation():
 
 def getLidarReadings():
   global lidarReadings
-  
   return lidarReadings
 
 def getZEDDepthColumns():
@@ -50,8 +49,8 @@ def setMotorVelocity(left, right):
 
 def lidarCallbackHandler(scan):
   global lidarReadings
-  lidarReadings = scan.intensities
-
+  lidarReadings = np.array(scan.ranges) * 2
+  # multiplying by to to convert to .5 meter
 
 def zedDepthCallbackHandler(frame):
   global depthColumns
