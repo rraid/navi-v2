@@ -168,6 +168,9 @@ class Perception(Thread):
 
   def run(self):
     lastTime = time.time()
+    self.localizer.start()
+    self.mapper.start()
+    self.detector.start()
     while not self.stopstate: # spin thread
       self.collisions = getCollisionDsitribution(
           getSonarDistribution(devhub.getSonarReadings()), \
@@ -189,4 +192,7 @@ class Perception(Thread):
       lastTime = currTime
 
   def stop(self):
+    self.localizer.stop()
+    self.mapper.stop()
+    self.detector.stop()
     self.stopstate = True
