@@ -32,16 +32,36 @@ class GridMap(Thread):
     self.grid = np.zeros((int(self.y_meters / self.y_inc),
                           int(self.x_meters / self.x_inc)), dtype=np.float32)
 
-  def updateCollisions(self, positions, collisions):
+  def updateCollisions(self, positions, collisions, restrict_range=None):
     assert type(self.grid) != type(None)
+
+    theta0 = 0
+    theta1 = 36
+    top = 0
+    bottom = self.grid.shape[0]
+    left = 0
+    right = self.grid.shape[1]
+
+    if restrict_range != None: # for speedup
+      positions = positions[ \
+          restrict_range[0][0]:restrict_range[0][1], \
+          restrict_range[1][0]:restrict_range[1][1], \
+          restrict_range[2][0]:restrict_range[2][1]]
+      left   = restrict_range[0][0]
+      right  = restrict_range[0][1]
+      top    = restrict_range[1][0]
+      bottom = restrict_range[1][1]
+      theta0 = restrict_range[2][0]
+      theta1 = restrict_range[2][1]
 
     # convolve the collisions with the positions and add it in
     obstacles = mx.nd.zeros((1, 1, positions.shape[0], positions.shape[1]),
         ctx=mx.gpu(0))
     collisions = np.flipud(np.fliplr(collisions))
-    update = np.zeros((36, collisions.shape[0], collisions.shape[1]))
-    for theta in range(positions.shape[2]):
-      update[theta,:,:] = rotateImage(collisions, theta * 10)
+    update = np.zeros((positions.shape[2], \
+        collisions.shape[0], collisions.shape[1]))
+    for theta in range(theta0, theta1):
+      update[theta-theta0,:,:] = rotateImage(collisions, theta * 10)
     location = mx.nd.array(np.rollaxis(positions, -1), ctx=mx.gpu(0))\
         .reshape((1, positions.shape[2], positions.shape[0], positions.shape[1]))
     update = mx.nd.array(update, ctx=mx.gpu(0))\
@@ -55,8 +75,8 @@ class GridMap(Thread):
 
     # add collisions
     # probability decreases with every call (depends on a regular call interval)
-    print positions.shape
-    self.grid = np.clip(self.grid * 0.8 +
+    self.grid[top:bottom,left:right] = \
+        np.clip(self.grid[top:bottom,left:right] * 0.8 +
         obstacles.reshape(positions.shape[:2]).asnumpy(), 0.0, 1.0)
 
   def setPositions(self, positions):
