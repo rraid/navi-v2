@@ -2,7 +2,7 @@ import math
 
 wheel_radius = 0.14 # meters
 robot_radius = 0.343 # meters
-RPM = 5700
+RPM = 1.3
 
 def getTrajectory(pose, k, planner):
   traj = [(pose[0], pose[1])]
