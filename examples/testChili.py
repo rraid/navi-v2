@@ -9,4 +9,6 @@ from matplotlib import cm
 if __name__ == "__main__":
   colorImage = cv2.imread("sampleImage.png", cv2.IMREAD_GRAYSCALE)
   tags = chili.find(colorImage)
-  print(str(tags))
+  for tag in tags:
+    print("Tagid:" + str(tag))
+    print(tags[tag])
