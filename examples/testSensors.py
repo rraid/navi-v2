@@ -1,7 +1,10 @@
 import sys
 sys.path.append("../perception")
+sys.path.append("../device/")
+import devhub
 import perception
 import numpy as np
+import time
 
 def displayDistribution(name, grid):
   import matplotlib.pyplot as plt
@@ -10,10 +13,14 @@ def displayDistribution(name, grid):
   plt.imshow(np.flipud(grid) * 255.0, cmap=cm.gray)
   plt.show()
 
+devhub.init()
+time.sleep(1)
 
-values = [50,50,50,80,50,50,50,50,50]
+values = devhub.getLidarReadings()
 
-grid = perception.getSonarDistribution(values)
+values = devhub.getLidarReadings()
+grid = perception.getLidarDistribution(values)
+
 displayDistribution("Sonar", grid)
 #grid = perception.getLidarDistribution(values)
 #displayDistribution("Lidar", grid)
