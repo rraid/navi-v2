@@ -37,7 +37,8 @@ if __name__ == "__main__":
 
   for i in range(5):
     starttime = time.time()
-    grid.updateCollisions(positions, collisions)
+    restrict_range = [[0, 120], [0, 120], [0, 36]]
+    grid.updateCollisions(positions, collisions, restrict_range)
     print "time taken:", time.time() - starttime
 
   gridMap = np.flipud(grid.predict())

@@ -48,7 +48,13 @@ if __name__ == "__main__":
     collisions = np.zeros((49, 49))
     localize.setObservation(gps, compass, collisions)
 
-    localize.updatePosition(1.0, 1.0)
+    restrict_range = [[max(0, int(robotPos[0]) - 50), \
+                       min(gridmap.shape[1], int(robotPos[0]) + 50)], \
+                      [max(0, int(robotPos[1]) - 50), \
+                       min(gridmap.shape[0], int(robotPos[1]) + 50)], \
+                      [0, 36]]
+
+    localize.updatePosition(1.0, 1.0, restrict_range)
     print("update:", time.time() - start)
     localize.observePosition(gps, compass, collisions, gridmap)
     print("observe:", time.time() - start)

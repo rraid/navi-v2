@@ -100,16 +100,14 @@ def getZEDDistribution(columns):
 
 def addMatrixFromCenter(matrixA, matrixB):
   convX = (matrixA.shape[0] - matrixB.shape[0])/2
-  convy = (matrixA.shape[1] - matrixB.shape[1])/2
-  for x in range(matrixB.shape[0]):
-    for y in range(matrixB.shape[1]):
-      matrixA[x + convX, y + convY] += matrixB[x,y]
+  convY = (matrixA.shape[1] - matrixB.shape[1])/2
+  matrixA[convX:convX+matrixB.shape[0], convY:convY+matrixB.shape[1]] += matrixB
   return matrixA
 
 def getCollisionDistribution(sonar, lidar, zed):
   sizex = max(lidar.shape[0],zed.shape[0],sonar.shape[0])
   sizey = max(lidar.shape[1],zed.shape[1],sonar.shape[1])
-  sensorSum = np.zeros(sizex,sizey)
+  sensorSum = np.zeros((sizex,sizey))
 
   sensorSum = addMatrixFromCenter(sensorSum,lidar)
   sensorSum = addMatrixFromCenter(sensorSum,sonar)
@@ -171,6 +169,9 @@ class Perception(Thread):
 
   def run(self):
     lastTime = time.time()
+    self.localizer.start()
+    self.mapper.start()
+    self.detector.start()
     while not self.stopstate: # spin thread
       self.collisions = getCollisionDsitribution(
           getSonarDistribution(devhub.getSonarReadings()), \
@@ -192,4 +193,7 @@ class Perception(Thread):
       lastTime = currTime
 
   def stop(self):
+    self.localizer.stop()
+    self.mapper.stop()
+    self.detector.stop()
     self.stopstate = True

@@ -54,7 +54,23 @@ class Localizer(Thread):
     self.compass = np.zeros((36, ))
     self.collisions = np.zeros((1, 1))
 
-  def updatePosition(self, left, right):
+  def updatePosition(self, left, right, restrict_range=None):
+    x1 = 0
+    x2 = self.state.shape[1]
+    y1 = 0
+    y2 = self.state.shape[0]
+    theta0 = 0
+    theta1 = 36
+    """
+    if restrict_range != None:
+      x1     = restrict_range[0][0]
+      x2     = restrict_range[0][1]
+      y1     = restrict_range[1][0]
+      y2     = restrict_range[1][1]
+      theta0 = restrict_range[2][0]
+      theta1 = restrict_range[2][1]
+    """
+
     currTime = time.time()
     dt = currTime - self.timeUpdated
     self.timeUpdated = currTime
@@ -69,21 +85,22 @@ class Localizer(Thread):
     x = np.arange(-ksize, ksize+1, 1)
     y = np.arange(-ksize, ksize+1, 1)
     x, y = np.meshgrid(x, y)
-    kernel = np.exp(-1.0 / (1.5 * dt) * ((y-v * dt)**2.0 + x**2.0))
+    kernel = np.exp(-1.0 / (1.5 * dt) * ((y - v * dt)**2.0 + x**2.0))
     kernel /= np.sum(kernel)
-    update = np.zeros((36, kernel.shape[0], kernel.shape[1]))
-    for theta in range(self.state.shape[2]):
-      update[theta,:,:] = rotateImage(kernel, theta * 10)
-    state = mx.nd.array(np.rollaxis(self.state, -1), ctx=mx.gpu(0))\
-        .reshape((1, 36, self.state.shape[0], self.state.shape[1]))
+    update = np.zeros((theta1-theta0, kernel.shape[0], kernel.shape[1]))
+    for theta in range(theta0, theta1):
+      update[theta-theta0,:,:] = rotateImage(kernel, theta * 10)
+    state = mx.nd.array(np.rollaxis(self.state[y1:y2,x1:x2,theta0:theta1], -1), \
+        ctx=mx.gpu(0)).reshape((1, theta1-theta0, y2-y1, x2-x1))
     update = mx.nd.array(update, ctx=mx.gpu(0))\
         .reshape((1, update.shape[0], update.shape[1], update.shape[2]))
-    for theta in range(self.state.shape[2]):
-      self.state[:,:,theta] = mx.nd.Convolution(num_filter=1,
-          data=mx.nd.slice_axis(state, axis=1, begin=theta, end=theta+1),
-          weight=mx.nd.slice_axis(update, axis=1, begin=theta, end=theta+1),
+    self.state.fill(0.0) # refresh the localizer
+    for theta in range(theta0, theta1):
+      self.state[y1:y2,x1:x2,theta-theta0] = mx.nd.Convolution(num_filter=1,
+          data=mx.nd.slice_axis(state, axis=1, begin=theta-theta0, end=theta-theta0+1),
+          weight=mx.nd.slice_axis(update, axis=1, begin=theta-theta0, end=theta-theta0+1),
           no_bias=True, kernel=(ksize*2+1, ksize*2+1), pad=(ksize, ksize))\
-          .reshape((self.state.shape[0], self.state.shape[1])).asnumpy()
+          .reshape((y2-y1, x2-x1)).asnumpy()
 
     # apply a gaussian on the angular motion
     D = np.arange(-40, 50, 10.0) - w * dt
