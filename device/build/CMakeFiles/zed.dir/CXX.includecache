@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/nvidia/navi-v2/device/src/libzed.h
+
+/home/nvidia/navi-v2/device/src/zed.cpp
+stdio.h
+-
+string.h
+-
+libzed.h
+/home/nvidia/navi-v2/device/src/libzed.h
+sl/Camera.hpp
+-
+

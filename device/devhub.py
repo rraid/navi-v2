@@ -5,6 +5,7 @@ from sensor_msgs.msg import Image
 from sensor_msgs.msg import LaserScan
 from threading import Thread, Event, Lock
 from cv_bridge import CvBridge
+import zed
 import time
 import struct
 import cv2
@@ -30,18 +31,19 @@ rosReader = None
 def getSonarReadings():
   return sonarReadings
 
-def getGPSLocation():
+def getGPSReadings():
   return (latitude, longitude)
 
 def getLidarReadings():
   global lidarReadings
   return lidarReadings
 
-def getZEDDepthColumns():
+def getZedReadings():
   global depthColumns
+  depth_image = zed.grabDepthFrame
   return depthColumns
 
-def getCompassOrientation():
+def getCompassReadings():
   global heading
   return heading
   
@@ -57,22 +59,6 @@ def lidarCallbackHandler(scan):
   global lidarReadings
   lidarReadings = np.array(scan.ranges)
   # multiplying by to to convert to .5 meter
-
-def zedDepthCallbackHandler(frame):
-  global depthColumns
-  global depthImage
-  depthImage = np.reshape(np.fromstring(frame.data, dtype=np.float32),(frame.height,frame.width))
-  dataMid = frame.height/2
-  subImage = depthImage[dataMid-50:dataMid+50,:]
-  depthColumns = np.amin(subImage, axis=0)
-  #cv2.imshow('img',depthColumns)
-  #cv2.waitKey(30)
-  
-def zedImageCallbackHandler(frame):
-  global colorImage
-  colorImage = np.asarray(CvBridge().imgmsg_to_cv2(frame))
-  #cv2.imshow('img',colorImage)
-  #cv2.waitKey(30)
 
 class ArduinoListener(Thread):
 
@@ -140,22 +126,19 @@ class ROSListener(Thread):
     ros.init_node("DeviceListener", anonymous=True)
     ros.Subscriber("/scan", 
         LaserScan, lidarCallbackHandler)
-    ros.Subscriber("/zed/depth/depth_registered", 
-        Image, zedDepthCallbackHandler)
-    ros.Subscriber("/zed/left/image_rect_color", 
-        Image, zedImageCallbackHandler)
   def run(self):
     ros.spin() # blocks already
 
 def init():
   global arduinoMega
   global arduinoUno
+  zed.open()
   arduinoMega = ArduinoListener("ttyACM1")
   arduinoMega.start()
   arduinoUno = ArduinoListener("ttyACM0")
   arduinoUno.start()
- # rosReader = ROSListener()
- # rosReader.start()
+  rosReader = ROSListener()
+  rosReader.start()
 
 def stop():
   global arduinoMega
@@ -164,6 +147,7 @@ def stop():
   arduinoMega.join()
   arduinoUno.stop()
   arduinoUno.join()
-# ros.signal_shutdown("Ending Process")
+  zed.close()
+  ros.signal_shutdown("Ending Process")
   time.sleep(1)
   sys.exit()
