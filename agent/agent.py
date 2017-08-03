@@ -23,6 +23,7 @@ pygame.key.set_repeat(1, 1)
 font = pygame.font.SysFont("Stencil", 20)
 clock = pygame.time.Clock()
 
+
 # Initial value of speed
 speed = 0
 
