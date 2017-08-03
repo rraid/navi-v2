@@ -57,86 +57,77 @@ include CMakeFiles/zed.dir/progress.make
 # Include the compile flags for this target's objects.
 include CMakeFiles/zed.dir/flags.make
 
-CMakeFiles/zed.dir/src/zed.cpp.o: CMakeFiles/zed.dir/flags.make
-CMakeFiles/zed.dir/src/zed.cpp.o: ../src/zed.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/nvidia/navi-v2/device/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/zed.dir/src/zed.cpp.o"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/zed.dir/src/zed.cpp.o -c /home/nvidia/navi-v2/device/src/zed.cpp
+CMakeFiles/zed.dir/src/zed.o: CMakeFiles/zed.dir/flags.make
+CMakeFiles/zed.dir/src/zed.o: ../src/zed.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/nvidia/navi-v2/device/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/zed.dir/src/zed.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/zed.dir/src/zed.o -c /home/nvidia/navi-v2/device/src/zed.cpp
 
-CMakeFiles/zed.dir/src/zed.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/zed.dir/src/zed.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/nvidia/navi-v2/device/src/zed.cpp > CMakeFiles/zed.dir/src/zed.cpp.i
+CMakeFiles/zed.dir/src/zed.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/zed.dir/src/zed.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/nvidia/navi-v2/device/src/zed.cpp > CMakeFiles/zed.dir/src/zed.i
 
-CMakeFiles/zed.dir/src/zed.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/zed.dir/src/zed.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/nvidia/navi-v2/device/src/zed.cpp -o CMakeFiles/zed.dir/src/zed.cpp.s
+CMakeFiles/zed.dir/src/zed.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/zed.dir/src/zed.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/nvidia/navi-v2/device/src/zed.cpp -o CMakeFiles/zed.dir/src/zed.s
 
-CMakeFiles/zed.dir/src/zed.cpp.o.requires:
+CMakeFiles/zed.dir/src/zed.o.requires:
 
-.PHONY : CMakeFiles/zed.dir/src/zed.cpp.o.requires
+.PHONY : CMakeFiles/zed.dir/src/zed.o.requires
 
-CMakeFiles/zed.dir/src/zed.cpp.o.provides: CMakeFiles/zed.dir/src/zed.cpp.o.requires
-	$(MAKE) -f CMakeFiles/zed.dir/build.make CMakeFiles/zed.dir/src/zed.cpp.o.provides.build
-.PHONY : CMakeFiles/zed.dir/src/zed.cpp.o.provides
+CMakeFiles/zed.dir/src/zed.o.provides: CMakeFiles/zed.dir/src/zed.o.requires
+	$(MAKE) -f CMakeFiles/zed.dir/build.make CMakeFiles/zed.dir/src/zed.o.provides.build
+.PHONY : CMakeFiles/zed.dir/src/zed.o.provides
 
-CMakeFiles/zed.dir/src/zed.cpp.o.provides.build: CMakeFiles/zed.dir/src/zed.cpp.o
+CMakeFiles/zed.dir/src/zed.o.provides.build: CMakeFiles/zed.dir/src/zed.o
 
 
 # Object files for target zed
 zed_OBJECTS = \
-"CMakeFiles/zed.dir/src/zed.cpp.o"
+"CMakeFiles/zed.dir/src/zed.o"
 
 # External object files for target zed
 zed_EXTERNAL_OBJECTS =
 
-libzed.so: CMakeFiles/zed.dir/src/zed.cpp.o
+libzed.so: CMakeFiles/zed.dir/src/zed.o
 libzed.so: CMakeFiles/zed.dir/build.make
-libzed.so: /opt/ros/kinetic/lib/libopencv_stitching3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_superres3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_videostab3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_aruco3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_bgsegm3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_bioinspired3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_ccalib3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_cvv3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_datasets3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_dpm3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_face3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_fuzzy3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_hdf3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_line_descriptor3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_optflow3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_plot3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_reg3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_saliency3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_stereo3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_structured_light3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_surface_matching3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_text3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_xfeatures2d3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_ximgproc3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_xobjdetect3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_xphoto3.so.3.2.0
+libzed.so: /usr/local/zed/lib/libsl_zed.so
+libzed.so: /usr/local/zed/lib/libsl_depthcore.so
+libzed.so: /usr/local/zed/lib/libsl_calibration.so
+libzed.so: /usr/local/zed/lib/libsl_tracking.so
+libzed.so: /usr/local/zed/lib/libsl_disparityFusion.so
+libzed.so: /usr/local/zed/lib/libsl_svorw.so
+libzed.so: /usr/local/zed/lib/libsl_scanning.so
+libzed.so: /usr/local/zed/lib/libsl_core.so
+libzed.so: /usr/lib/aarch64-linux-gnu/libGLU.so
+libzed.so: /usr/lib/aarch64-linux-gnu/libGL.so
+libzed.so: /usr/lib/aarch64-linux-gnu/libglut.so
+libzed.so: /usr/lib/aarch64-linux-gnu/libXmu.so
+libzed.so: /usr/lib/aarch64-linux-gnu/libXi.so
+libzed.so: /usr/lib/aarch64-linux-gnu/libGLEW.so
 libzed.so: /usr/lib/aarch64-linux-gnu/libcuda.so
 libzed.so: /usr/local/cuda-8.0/lib64/libcudart.so
 libzed.so: /usr/local/cuda-8.0/lib64/libnppc.so
 libzed.so: /usr/local/cuda-8.0/lib64/libnppi.so
 libzed.so: /usr/local/cuda-8.0/lib64/libnpps.so
-libzed.so: /opt/ros/kinetic/lib/libopencv_shape3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_video3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_viz3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_phase_unwrapping3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_rgbd3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_calib3d3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_features2d3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_flann3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_objdetect3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_ml3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_highgui3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_photo3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_videoio3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_imgcodecs3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_imgproc3.so.3.2.0
-libzed.so: /opt/ros/kinetic/lib/libopencv_core3.so.3.2.0
+libzed.so: /usr/local/zed/lib/libsl_zed.so
+libzed.so: /usr/local/zed/lib/libsl_depthcore.so
+libzed.so: /usr/local/zed/lib/libsl_calibration.so
+libzed.so: /usr/local/zed/lib/libsl_tracking.so
+libzed.so: /usr/local/zed/lib/libsl_disparityFusion.so
+libzed.so: /usr/local/zed/lib/libsl_svorw.so
+libzed.so: /usr/local/zed/lib/libsl_scanning.so
+libzed.so: /usr/local/zed/lib/libsl_core.so
+libzed.so: /usr/lib/aarch64-linux-gnu/libGLU.so
+libzed.so: /usr/lib/aarch64-linux-gnu/libGL.so
+libzed.so: /usr/lib/aarch64-linux-gnu/libglut.so
+libzed.so: /usr/lib/aarch64-linux-gnu/libXmu.so
+libzed.so: /usr/lib/aarch64-linux-gnu/libXi.so
+libzed.so: /usr/lib/aarch64-linux-gnu/libGLEW.so
+libzed.so: /usr/lib/aarch64-linux-gnu/libcuda.so
+libzed.so: /usr/local/cuda-8.0/lib64/libcudart.so
+libzed.so: /usr/local/cuda-8.0/lib64/libnppc.so
+libzed.so: /usr/local/cuda-8.0/lib64/libnppi.so
+libzed.so: /usr/local/cuda-8.0/lib64/libnpps.so
 libzed.so: CMakeFiles/zed.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/nvidia/navi-v2/device/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX shared library libzed.so"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/zed.dir/link.txt --verbose=$(VERBOSE)
@@ -146,7 +137,7 @@ CMakeFiles/zed.dir/build: libzed.so
 
 .PHONY : CMakeFiles/zed.dir/build
 
-CMakeFiles/zed.dir/requires: CMakeFiles/zed.dir/src/zed.cpp.o.requires
+CMakeFiles/zed.dir/requires: CMakeFiles/zed.dir/src/zed.o.requires
 
 .PHONY : CMakeFiles/zed.dir/requires
 

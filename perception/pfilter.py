@@ -56,6 +56,7 @@ class ParticleFilter:
     VW = np.concatenate((V, W), axis=1)
 
     self.particles += VW
+    self.particles[2] %= 360.0
     for i in range(len(self.shape)):
       self.particles[:,i] = \
           np.clip(self.particles[:,i], 0, self.shape[i] * 0.9999999)

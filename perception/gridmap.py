@@ -92,7 +92,6 @@ class GridMap(Thread):
       if len(pts) == 0:
         return
       positions = np.array(positions)
-      print positions.shape
       xy = mx.nd.array(positions[:,:2], ctx=mx.gpu(0))
       theta = mx.nd.array(positions[:,2], ctx=mx.gpu(0))\
           .reshape((positions.shape[0], 1)) * 3.14159265359 / 180.0
@@ -105,6 +104,8 @@ class GridMap(Thread):
       col = mx.nd.dot(col, rot) + \
           mx.nd.reshape(mx.nd.flip(xy, axis=1), (1, xy.size))
       pts = col.reshape((pts.shape[0] * theta.shape[0], 2)).asnumpy().astype(np.int)
+      pts[:,1] = np.clip(pts[:,1], 0, self.grid.shape[0])
+      pts[:,0] = np.clip(pts[:,0], 0, self.grid.shape[1])
       self.grid = self.grid * 0.8
       self.grid[pts[:,1], pts[:,0]] = 1.0
 

@@ -1,5 +1,5 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/zed.dir/src/zed.cpp.o"
+  "CMakeFiles/zed.dir/src/zed.o"
   "libzed.pdb"
   "libzed.so"
 )
