@@ -40,7 +40,10 @@ def getLidarReadings():
 
 def getZedReadings():
   global depthColumns
-  depth_image = zed.grabDepthFrame
+  depth_image = zed.grabDepthFrame()
+  dataMid = depth_image.shape[0]/2
+  subImage = depth_image[dataMid-50:dataMid+50,:]
+  depthColumns = np.amin(subImage, axis=0)
   return depthColumns
 
 def getCompassReadings():
@@ -86,39 +89,12 @@ class ArduinoListener(Thread):
       count = 0
       devType = None
       if buff[0] == '[':
-        for ptr in range(len(buff)):
-          if buff[ptr] == ',' or buff[ptr] == ']':
-            if count == 0:
-              devType = buff[prev:ptr]
-              count += 1
-              prev = ptr + 1
-            elif devType == "mega":
-              #if count < 10:
-                #try:
-                 # sonarReadings[count-1] = float(buff[prev:ptr])
-               # except ValueError:
-                #  print "Serial Read Incorrectly"
-                #  break
-                #count += 1
-                #prev = ptr + 1
-              if count == 1:
-                latitude = float(buff[prev:ptr])
-                count += 1
-                prev = ptr + 1
-              elif count ==2:
-                longitude = float(buff[prev:ptr])
-                prev = ptr + 1
-              elif count ==3
-                heading = float(buff[prev:ptr])
-            #elif devType == "uno":
-            #  try:
-            #    heading = float(buff[prev:ptr])
-            #  except ValueError:
-            #    print "Serial Read Incorrectly"
-            #    break
-            else:
-              print "Couldnt identify device"
-
+      
+        try:
+          buff = eval(buff.strip())
+          (latitude,longitude,heading) = buff
+        except:
+          print "error"
   def stop(self):
     self.stopstate = True
 
