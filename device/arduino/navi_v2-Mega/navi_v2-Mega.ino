@@ -80,14 +80,11 @@ void getsonar_value() {
 
 void echoCheck() { // If ping received, set the sensor distance to array.
   if (sonar[currentSensor].check_timer())
-<<<<<<< HEAD
     sonar_value[currentSensor] = (sonar[currentSensor].ping_result/2) * 3.4029;
 }
 void getCompass(){
   heading = gyroLoop() *180/PI;
-=======
-    sonar_value[currentSensor] = sonar[currentSensor].ping_cm;
->>>>>>> 083151196f88d81195e45896f6a03b8d95e695c3
+
 }
 
 
@@ -95,7 +92,7 @@ char ftos [safesize];
 void writeSerial()
 {
   memset(write_buffer, '\0', BUFSIZE);
-  strcat(write_buffer, "[mega,");
+  strcat(write_buffer, "[");
   /*for (int x = 0; x < SONAR_NUM; x++)
   {
     dtostrf(sonar_value[x] / 50.0 , 20, 10, ftos);
