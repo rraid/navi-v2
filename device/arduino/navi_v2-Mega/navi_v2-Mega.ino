@@ -10,6 +10,9 @@
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
 
+//Gyro - Compass
+float heading = 0.0;
+
 //GPS
 static const int RXPin = 11, TXPin = 12;
 static const uint32_t GPSBaud = 57600;
@@ -46,12 +49,14 @@ void setup() {
   Serial.begin(9600);
   ss.begin(GPSBaud);
   lastPingTime = millis() + 75;           // First ping starts at 75ms, gives time for the Arduino to chill before starting.
+  gyroSetup();
 }
 
 void loop()
 {
   getGPS();
-  getsonar_value();
+  //getsonar_value();
+  getCompass();
   writeSerial();
 }
 
@@ -75,7 +80,11 @@ void getsonar_value() {
 
 void echoCheck() { // If ping received, set the sensor distance to array.
   if (sonar[currentSensor].check_timer())
-    sonar_value[currentSensor] = sonar[currentSensor].ping_cm;
+    sonar_value[currentSensor] = (sonar[currentSensor].ping_result/2) * 3.4029;
+}
+void getCompass(){
+  heading = gyroLoop() *180/PI;
+
 }
 
 
@@ -83,17 +92,20 @@ char ftos [safesize];
 void writeSerial()
 {
   memset(write_buffer, '\0', BUFSIZE);
-  strcat(write_buffer, "[mega,");
-  for (int x = 0; x < SONAR_NUM; x++)
+  strcat(write_buffer, "[");
+  /*for (int x = 0; x < SONAR_NUM; x++)
   {
     dtostrf(sonar_value[x] / 50.0 , 20, 10, ftos);
     strcat(write_buffer, ftos);
     strcat(write_buffer, ",");
-  }
+  }*/
   dtostrf(latitude, 20, 10, ftos);
   strcat(write_buffer, ftos);
   strcat(write_buffer, ",");
   dtostrf(longitude, 20, 10, ftos);
+  strcat(write_buffer, ftos);
+  strcat(write_buffer, ",");
+  dtostrf(heading, 20, 10, ftos);
   strcat(write_buffer, ftos);
   strcat(write_buffer, "]\n");
   Serial.write(write_buffer);

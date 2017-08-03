@@ -4,20 +4,32 @@
   Motor - R: 9  L: 10
 */
 ///////////////////////////////////////////////
-#include <Adafruit_HMC5883_U.h>
-#include <Adafruit_Sensor.h>
-#include <Wire.h>
 #include <FRCmotor.h>
+#include "I2Cdev.h"
+
+#include "MPU6050_6Axis_MotionApps20.h"
+//#include "MPU6050.h" // not necessary if using MotionApps include file
+
+// Arduino Wire library is required if I2Cdev I2CDEV_ARDUINO_WIRE implementation
+// is used in I2Cdev.h
+#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+    #include "Wire.h"
+#endif
+
+// class default I2C address is 0x68
+// specific I2C addresses may be passed as a parameter here
+// AD0 low = 0x68 (default for SparkFun breakout and InvenSense evaluation board)
+// AD0 high = 0x69
+MPU6050 mpu;
 
 int gamemode = 1; // Enables the FRCmotor library
-
-//Magnometer
-Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12345);
-float heading= 0;
 
 //SerialRead/Write
 #define BUFSIZE 256
 #define SPEED_LIMIT 100
+
+//Gyro-Compass
+float heading = 0.0;
 
 const int safesize = BUFSIZE / 2;
 char buf[BUFSIZE];
@@ -39,12 +51,12 @@ void setup() {
   rightMotor.Set(0); //(100 MAX FORWARD, -100 MAX BACK)
   
   Serial.begin(9600);
-  mag.begin();
+  gyroSetup();
 }
 
 void loop() 
 {
-  readSerial();
+  //readSerial();
   moveMotor();
   getCompass();
   writeSerial();
@@ -87,27 +99,9 @@ void moveMotor()
 }
 
 
-float declinationAngle = -0.22;
-void getCompass(){
-  /* Get a new sensor event */ 
-  sensors_event_t event; 
-  mag.getEvent(&event);
-  
-  //Calculate heading
-  heading = atan2(event.magnetic.y, event.magnetic.x);
-  
-  //Magnetic field error in Piscataway
-  //https://www.ngdc.noaa.gov/geomag-web/
-  heading += declinationAngle;
 
-  if(heading < 0)
-    heading += 2*PI;
-    
-  // Check for wrap due to addition of declination.
-  if(heading > 2*PI)
-    heading -= 2*PI;
-  //Convert to degrees
-  heading = heading *180/M_PI;
+void getCompass(){
+  heading = gyroLoop() *180/M_PI;
 }
 
 

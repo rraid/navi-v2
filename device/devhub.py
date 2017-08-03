@@ -25,7 +25,7 @@ heading = None
 motorVelocity = [0,0]
 
 arduinoMega = None
-arduinoUno = None
+#arduinoUno = None
 rosReader = None
 
 def getSonarReadings():
@@ -40,7 +40,10 @@ def getLidarReadings():
 
 def getZedReadings():
   global depthColumns
-  depth_image = zed.grabDepthFrame
+  depth_image = zed.grabDepthFrame()
+  dataMid = depth_image.shape[0]/2
+  subImage = depth_image[dataMid-50:dataMid+50,:]
+  depthColumns = np.amin(subImage, axis=0)
   return depthColumns
 
 def getCompassReadings():
@@ -74,7 +77,7 @@ class ArduinoListener(Thread):
       #time.sleep(0.1) # 10 MHz refresh
 
   def readSerial(self):
-    global sonarReadings
+    #global sonarReadings
     global latitude
     global longitude
     global heading
@@ -86,36 +89,12 @@ class ArduinoListener(Thread):
       count = 0
       devType = None
       if buff[0] == '[':
-        for ptr in range(len(buff)):
-          if buff[ptr] == ',' or buff[ptr] == ']':
-            if count == 0:
-              devType = buff[prev:ptr]
-              count += 1
-              prev = ptr + 1
-            elif devType == "mega":
-              if count < 10:
-                try:
-                  sonarReadings[count-1] = float(buff[prev:ptr])
-                except ValueError:
-                  print "Serial Read Incorrectly"
-                  break
-                count += 1
-                prev = ptr + 1
-              elif count == 10:
-                latitude = float(buff[prev:ptr])
-                count += 1
-                prev = ptr + 1
-              elif count ==11:
-                longitude = float(buff[prev:ptr])
-            elif devType == "uno":
-              try:
-                heading = float(buff[prev:ptr])
-              except ValueError:
-                print "Serial Read Incorrectly"
-                break
-            else:
-              print "Couldnt identify device"
-
+      
+        try:
+          buff = eval(buff.strip())
+          (latitude,longitude,heading) = buff
+        except:
+          print "error"
   def stop(self):
     self.stopstate = True
 
@@ -135,8 +114,8 @@ def init():
   zed.open()
   arduinoMega = ArduinoListener("ttyACM1")
   arduinoMega.start()
-  arduinoUno = ArduinoListener("ttyACM0")
-  arduinoUno.start()
+  #arduinoUno = ArduinoListener("ttyACM0")
+  #arduinoUno.start()
   rosReader = ROSListener()
   rosReader.start()
 
@@ -145,8 +124,8 @@ def stop():
   global arduinoUno
   arduinoMega.stop()
   arduinoMega.join()
-  arduinoUno.stop()
-  arduinoUno.join()
+  #arduinoUno.stop()
+  #arduinoUno.join()
   zed.close()
   ros.signal_shutdown("Ending Process")
   time.sleep(1)
