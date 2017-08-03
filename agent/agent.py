@@ -11,6 +11,7 @@ import serial
 import pygame
 import time
 import cv2
+import numpy as np
 
 # Pygame ish
 bkg = (255, 255, 255)
@@ -105,10 +106,12 @@ if __name__ == "__main__":
   devhub.setMotorVelocity(0, 0)
 
   # grab the pathmap from a file
-  pathmap = cv2.imread("pathmap.png")
+  pathmap = cv2.imread("../perception/pathmap.png")
 
   # initialize the perception module
   #perceptor = perception(pathmap)
+  perceptor = perception.Perception(pathmap)
+  perceptor.start()
 
   # initialize the planner module
   #planner = AStar(pathmap)
@@ -119,6 +122,8 @@ if __name__ == "__main__":
   while not stopSig:
     kbdcontrol = keyboardControl()
     devhub.setMotorVelocity(kbdcontrol[0], kbdcontrol[1])
+    cv2.imshow("collisions", np.flipud(perceptor.getCollisions()))
+    cv2.waitKey(10)
   
   
 

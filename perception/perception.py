@@ -1,6 +1,7 @@
 import sys
 sys.path.append("../device")
 import devhub
+import pfilter
 import math
 import numpy as np
 from scipy.signal import convolve2d, correlate2d
@@ -11,7 +12,7 @@ from threading import Thread
 
 #Top four sonars from left to right followed by
 #bottom five sonars from left to right
-sonarAngle = np.array([-20, -10 , 10, -20, -20, -10, 0, 10, 20])
+sonarAngle = np.array([-30, -5 , 5, 30, -45, -25, 0, 25, 45])
 
 mapShape = (480, 640)
 
@@ -22,13 +23,16 @@ GPSD = np.exp(-(np.multiply(_X, _X) + np.multiply(_Y, _Y)) / (2.0 * 2.5))
 GPSD /= np.sum(GPSD)
 
 def validDepth(d):
-  return d != 0 and d != float("inf") and d != float("-inf") and d != float("nan")
+  return d != 0 and d != float("inf") and d != float("-inf") and not math.isnan(d)
 
 def getSonarDistribution(sonarValues):
+  size = len(sonarValues)
+  if size == 0:
+    return np.array([[]])
   sonarDistx = np.zeros((9,100), dtype = np.int)
   sonarDisty = np.zeros((9,100), dtype = np.int)
   relativeAngle = np.linspace(-7.5,7.5,100)
-  sonarValues = [sonarValues[i] / 0.5 if validDepth(sonarValues[i]) else 0.0 for i in range(len(sonarValues))]
+  sonarValues = [sonarValues[i] / 0.1 if validDepth(sonarValues[i]) else 0.0 for i in range(len(sonarValues))]
   for i in range(9):
     if sonarValues[i] == 0.0:
       continue
@@ -47,55 +51,42 @@ def getSonarDistribution(sonarValues):
   for sonar in range(9):
     for i in range(100):
 
-        sonarArray[sizex + sonarDistx[sonar,i], sizey + sonarDisty[sonar,i]] += 0.01
+        sonarArray[sizex + sonarDistx[sonar,i], sizey + sonarDisty[sonar,i]] += 0.1
+        #Changed from .01 to .1 because it shows better with agent.py
   return sonarArray
 
 
 def getLidarDistribution(pts):
   size = len(pts)
-  lidarDist = np.zeros((2,size), dtype = np.int)
-  angleDist = np.linspace(135,-135,size)
+  if size == 0:
+    return np.array([[]])
+  angleDist = np.linspace(135,-135,size) * math.pi / 180
+  pts = np.array([pts[i] / 0.1 if validDepth(pts[i]) else 0.0 for i in range(len(pts))])
+  c = np.cos(angleDist)
+  s = np.sin(angleDist)
+  
+  y = np.clip(np.multiply(s, pts).astype(int) + 300,0,600)
+  x = np.clip(np.multiply(c, pts).astype(int) + 300,0,600)
 
-  pts = [pts[i] / 0.5 if validDepth(pts[i]) else 0.0 for i in range(len(pts))]
-  for i in range(size):
-    if pts[i] == 0.0:
-      continue
-    lidarDist[0,i] = int(math.cos(math.radians(angleDist[i])) * pts[i])
-    lidarDist[1,i] = int(math.sin(math.radians(angleDist[i])) * pts[i])
-
-  sizex = abs(np.amax(lidarDist[0,:])) + abs(np.amin(lidarDist[0,:]))
-  sizey = abs(np.amax(lidarDist[1,:])) + abs(np.amin(lidarDist[1,:]))
-  if sizex == 0:
-      sizex = 1
-  if sizey== 0:
-      sizey = 1
-  lidarArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
-
-  for i in range(size):
-    lidarArray[ sizex + lidarDist[0,i],sizey + lidarDist[1,i]] = 1
+  lidarArray = np.zeros((600,600))
+  
+  lidarArray[x,y] = 1.0
   return lidarArray
 
-def getZEDDistribution(columns):
+def getZedDistribution(columns):
   size = len(columns)
-  zedDist = np.zeros((2,size), dtype = np.int)
-  angleDist = np.linspace(-55,55,size)
-  columns = [columns[i] / 0.5 if validDepth(columns[i]) else 0.0 for i in range(len(columns))]
-  for i in range(size):
-    if columns[i] == 0.0:
-      continue
-    zedDist[0,i] = int(math.cos(math.radians(angleDist[i])) * columns[i])
-    zedDist[1,i] = int(math.sin(math.radians(angleDist[i])) * columns[i])
-
-  sizex = abs(np.amax(zedDist[0,:])) + abs(np.amin(zedDist[0,:]))
-  sizey = abs(np.amax(zedDist[1,:])) + abs(np.amin(zedDist[1,:]))
-  if sizex == 0:
-      sizex = 1
-  if sizey== 0:
-      sizey = 1
-  if sizex > 0 and sizey>0:
-    zedArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
-  for i in range(size):
-    zedArray[ sizex + zedDist[0,i],sizey + zedDist[1,i]] += 1
+  if size == 0:
+    return np.array([[]])
+  angleDist = np.linspace(-55,55,size) *math.pi / 180
+  columns = np.array([columns[i]/0.1 if validDepth(columns[i]) else 0.0 for i in range(len(columns))])
+  c = np.cos(angleDist)
+  s = np.sin(angleDist)
+  
+  y = np.clip((np.multiply(s, columns) + 0.3).astype(int) + 300,0,600)
+  x = np.clip(np.multiply(c, columns).astype(int) + 300,0,600)
+  
+  zedArray = np.zeros((600,600))
+  zedArray[x,y] = 1.0
   return zedArray
 
 def addMatrixFromCenter(matrixA, matrixB):
@@ -104,13 +95,19 @@ def addMatrixFromCenter(matrixA, matrixB):
   matrixA[convX:convX+matrixB.shape[0], convY:convY+matrixB.shape[1]] += matrixB
   return matrixA
 
-def getCollisionDistribution(sonar, lidar, zed):
-  sizex = max(lidar.shape[0],zed.shape[0],sonar.shape[0])
-  sizey = max(lidar.shape[1],zed.shape[1],sonar.shape[1])
+def getCollisionDistribution(lidar, zed):
+  if type(zed) == type(None):
+    return []
+  if type(lidar) == type(None):
+    return []
+  #sizex = max(lidar.shape[0],zed.shape[0])
+  #sizey = max(lidar.shape[1],zed.shape[1])
+  sizex = 600
+  sizey = 600
   sensorSum = np.zeros((sizex,sizey))
 
   sensorSum = addMatrixFromCenter(sensorSum,lidar)
-  sensorSum = addMatrixFromCenter(sensorSum,sonar)
+  #sensorSum = addMatrixFromCenter(sensorSum,sonar)
   sensorSum = addMatrixFromCenter(sensorSum,zed)
   center = (sensorSum.shape[0] / 2, sensorSum.shape[1] / 2)
   sensorSum[center[0]-1:center[0]+2, center[1]-1:center[1]+2] = 0.0
@@ -150,50 +147,57 @@ def getCompassDistribution(degreesFromNorth):
 
 class Perception(Thread):
   def __init__(self, pathmap):
+    Thread.__init__(self)
     currTime = time.time()
-    self.localizer = Localizer()
-    self.mapper = GridMap()
-    self.detector = ObjectDetector()
+    self.localizer = pfilter.ParticleFilter()
+    #self.mapper = GridMap()
+    #self.detector = ObjectDetector()
     self.stopstate = False
     self.pathmap = pathmap
     self.collisions = np.zeros(self.pathmap.shape[:2])
-    self.localizer.initializeUniformly(self.pathmap.shape[:2])
-    self.mapper.initializeEmpty(self.pathmap.shape[:2])
-    self.detector.setObjects([]) # no objects for now, we can use them later
+    self.localizer.initializeUniformly(5000, list(self.pathmap.shape[:2]) + [360])
+    #self.mapper.initializeEmpty(self.pathmap.shape[:2])
+    #self.detector.setObjects([]) # no objects for now, we can use them later
+    self.left = 0
+    self.right = 0
 
     global mapShape
     mapShape = self.pathmap.shape
 
   def getCollisions(self):
     return np.copy(self.collisions)
+    
+  def setSpeed(self, left, right):
+    self.left = left
+    self.right = right
 
   def run(self):
     lastTime = time.time()
-    self.localizer.start()
-    self.mapper.start()
-    self.detector.start()
+    #self.mapper.start()
+    #self.detector.start()
     while not self.stopstate: # spin thread
-      self.collisions = getCollisionDsitribution(
-          getSonarDistribution(devhub.getSonarReadings()), \
+      self.collisions = getCollisionDistribution(
           getLidarDistribution(devhub.getLidarReadings()), \
-          getZEDDistribution(devhub.getZEDDepthColumns()))
-      if type(devhub.depthImage) != type(None) and devhub.depthImage != [] and \
-         type(devhub.rgbImage) != type(None) and devhub.colorImage != []:
-        self.detector.setImages(devhub.colorImage, devhub.depthImage)
-      self.localizer.setGrid(self.mapper.predict())
-      self.mapper.setPositions(self.localizer.predict())
-      self.localizer.setSpeed(devhub.leftSpeed, devhub.rightSpeed)
-      self.localizer.setObservation( \
+          getZedDistribution(devhub.getZedReadings()))
+      self.localizer.updatePosition(self.left,self.right)
+      self.localizer.observePosition( \
         getGPSDistribution(devhub.getGPSLocation()), \
         getCompassDistribution(devhub.getCompassOrientation()), \
         self.collisions)
-      self.mapper.setCollisions(self.collisions)
+      #if type(devhub.depthImage) != type(None) and devhub.depthImage != [] and \
+      #   type(devhub.rgbImage) != type(None) and devhub.colorImage != []:
+      #  self.detector.setImages(devhub.colorImage, devhub.depthImage)
+      #self.localizer.setGrid(self.mapper.predict())
+      #self.mapper.setPositions(self.localizer.predict())
+      #self.localizer.setSpeed(devhub.motorVelocity[0], devhub.motorVelocity[1])
+
+      #self.mapper.setCollisions(self.collisions)
       currTime = time.time()
       print("[PERCEPTION] process time:", currTime - lastTime)
       lastTime = currTime
 
   def stop(self):
-    self.localizer.stop()
-    self.mapper.stop()
-    self.detector.stop()
+#    self.localizer.stop()
+#    self.mapper.stop()
+#    self.detector.stop()
     self.stopstate = True

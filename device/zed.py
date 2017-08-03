@@ -2,7 +2,7 @@ import ctypes, os
 import numpy as np
 import cv2
 
-path = "/home/timrobot/Documents/navi-v2/device/libzed.so"
+path = "/home/nvidia/navi-v2/device/libzed.so"
 libzed = ctypes.cdll.LoadLibrary(path)
 libzed.zed_open.resType = ctypes.c_bool
 libzed.zed_close.resType = None

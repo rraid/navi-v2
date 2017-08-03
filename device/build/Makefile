@@ -123,32 +123,20 @@ zed/fast:
 	$(MAKE) -f CMakeFiles/zed.dir/build.make CMakeFiles/zed.dir/build
 .PHONY : zed/fast
 
-src/zed.o: src/zed.cpp.o
-
+# target to build an object file
+src/zed.o:
+	$(MAKE) -f CMakeFiles/zed.dir/build.make CMakeFiles/zed.dir/src/zed.o
 .PHONY : src/zed.o
 
-# target to build an object file
-src/zed.cpp.o:
-	$(MAKE) -f CMakeFiles/zed.dir/build.make CMakeFiles/zed.dir/src/zed.cpp.o
-.PHONY : src/zed.cpp.o
-
-src/zed.i: src/zed.cpp.i
-
+# target to preprocess a source file
+src/zed.i:
+	$(MAKE) -f CMakeFiles/zed.dir/build.make CMakeFiles/zed.dir/src/zed.i
 .PHONY : src/zed.i
 
-# target to preprocess a source file
-src/zed.cpp.i:
-	$(MAKE) -f CMakeFiles/zed.dir/build.make CMakeFiles/zed.dir/src/zed.cpp.i
-.PHONY : src/zed.cpp.i
-
-src/zed.s: src/zed.cpp.s
-
-.PHONY : src/zed.s
-
 # target to generate assembly for a file
-src/zed.cpp.s:
-	$(MAKE) -f CMakeFiles/zed.dir/build.make CMakeFiles/zed.dir/src/zed.cpp.s
-.PHONY : src/zed.cpp.s
+src/zed.s:
+	$(MAKE) -f CMakeFiles/zed.dir/build.make CMakeFiles/zed.dir/src/zed.s
+.PHONY : src/zed.s
 
 # Help Target
 help:
