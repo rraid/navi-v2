@@ -72,7 +72,7 @@ bool grabDepthFrame(void *dst) {
     return false;
   }
   zed.retrieveMeasure(depth_image, sl::MEASURE_DEPTH);
-  memcpy(dst, (void *)depth_image.getPtr<sl::float1>(sl::MEM_CPU), \
+  memcpy(dst, (void *)depth_image.getPtr<sl::float1>(sl::MEM_CPU),
       4 * depth_image.getHeight() * depth_image.getWidth());
   return true;
 }
