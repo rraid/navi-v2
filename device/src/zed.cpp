@@ -42,35 +42,37 @@ sl::Camera zed;
 sl::Mat depth_image;
 
 bool zed_open() {
-    // Setup configuration parameters for the ZED
-    InitParameters initParameters;
-    initParameters.camera_resolution = sl::RESOLUTION_HD720;
-    initParameters.depth_mode = sl::DEPTH_MODE_PERFORMANCE; //need quite a powerful graphic card in QUALITY
-    initParameters.coordinate_units = sl::UNIT_METER; // set meter as the OpenGL world will be in meters
-    initParameters.coordinate_system = sl::COORDINATE_SYSTEM_RIGHT_HANDED_Y_UP; // OpenGL's coordinate system is right_handed
+  // Setup configuration parameters for the ZED
+  InitParameters initParameters;
+  initParameters.camera_resolution = RESOLUTION_HD720;
+  initParameters.depth_mode = DEPTH_MODE_PERFORMANCE; //need quite a powerful graphic card in QUALITY
+  initParameters.coordinate_system = COORDINATE_SYSTEM_RIGHT_HANDED_Y_UP; // OpenGL's coordinate system is right_handed
+  initParameters.coordinate_units = UNIT_METER; // set meter as the OpenGL world will be in meters
 
-    // Open the ZED
-    ERROR_CODE err = zed.open(initParameters);
-    if (err != SUCCESS) {
-        zed.close();
-        return false; // Quit if an error occurred
-    }
-    return true;
+  // Open the ZED
+  ERROR_CODE err = zed.open(initParameters);
+  if (err != SUCCESS) {
+    printf("[ERROR] Cannot open zed!\n");
+    zed.close();
+    return false; // Quit if an error occurred
+  }
+  return true;
 }
 
 /**
  *  This function frees and close the ZED, its callback(thread) and the viewer
  **/
 void zed_close() {
-    zed.close();
+  zed.close();
 }
 
 bool grabDepthFrame(void *dst) {
-  if(zed.grab() != SUCCESS){
+  if (zed.grab() != SUCCESS){
     sl::sleep_ms(1);
     return false;
-    }
+  }
   zed.retrieveMeasure(depth_image, sl::MEASURE_DEPTH);
-  memcpy((uint8_t*)dst, depth_image.getPtr<sl::uchar1>(sl::MEM_CPU), 4*depth_image.getHeight() * depth_image.getWidth());
-   return true;
+  memcpy(dst, (void *)depth_image.getPtr<sl::float1>(sl::MEM_CPU), \
+      4 * depth_image.getHeight() * depth_image.getWidth());
+  return true;
 }
