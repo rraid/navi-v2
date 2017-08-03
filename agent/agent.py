@@ -23,6 +23,8 @@ pygame.key.set_repeat(1, 1)
 font = pygame.font.SysFont("Stencil", 20)
 clock = pygame.time.Clock()
 
+perceptor = None
+
 # Initial value of speed
 speed = 0
 
@@ -86,12 +88,13 @@ def keyboardControl():
 
 stopSig = False
 def stopsigHandler(signo, frame):
+  global perceptor
   stopSig = True
   print("Halting agent")
   devhub.setMotorVelocity(0, 0)
   devhub.stop()
   #planner.stop()
-  #perceptor.stop()
+  perceptor.stop()
   time.sleep(1)
   sys.exit(0)
   
@@ -105,10 +108,11 @@ if __name__ == "__main__":
   devhub.setMotorVelocity(0, 0)
 
   # grab the pathmap from a file
-  pathmap = cv2.imread("pathmap.png")
+  pathmap = cv2.imread("../perception/pathmap.png")
 
   # initialize the perception module
-  #perceptor = perception(pathmap)
+  perceptor = perception.Perception(pathmap)
+  perceptor.start()
 
   # initialize the planner module
   #planner = AStar(pathmap)
@@ -119,6 +123,10 @@ if __name__ == "__main__":
   while not stopSig:
     kbdcontrol = keyboardControl()
     devhub.setMotorVelocity(kbdcontrol[0], kbdcontrol[1])
+    cv2.imshow("Collisions", perceptor.getCollisions())
+    cv2.waitKey(10)
+    
+  
   
   
 

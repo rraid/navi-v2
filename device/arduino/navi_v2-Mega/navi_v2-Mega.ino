@@ -75,7 +75,7 @@ void getsonar_value() {
 
 void echoCheck() { // If ping received, set the sensor distance to array.
   if (sonar[currentSensor].check_timer())
-    sonar_value[currentSensor] = sonar[currentSensor].ping_result / US_ROUNDTRIP_CM;
+    sonar_value[currentSensor] = sonar[currentSensor].ping_cm;
 }
 
 
