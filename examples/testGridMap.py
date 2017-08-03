@@ -11,17 +11,18 @@ if __name__ == "__main__":
   grid = gridmap.GridMap()
   grid.initializeEmpty((275, 275))
 
-  positions = np.zeros((550, 550, 36))
-  positions[25, 50, -9] = 0.5
-  positions[50, 50, -8] = 0.5
-  positions[75, 50, -7] = 0.5
-  positions[100, 50, -6] = 0.5
-  positions[125, 50, -5] = 0.5
-  positions[150, 50, -4] = 0.5
-  positions[175, 50, -3] = 0.5
-  positions[200, 50, -2] = 0.5
-  positions[225, 50, -1] = 0.5
-  positions[250, 50, 0] = 0.5
+  positions = [\
+  [25, 50, -90],
+  [50, 50, -80],
+  [75, 50, -70],
+  [100, 50, -60],
+  [125, 50, -50],
+  [150, 50, -40],
+  [175, 50, -30],
+  [200, 50, -20],
+  [225, 50, -10],
+  [250, 50, 0]]
+  positions = list(np.matlib.repmat(positions, 500, 1))
 
   collisions = np.zeros((49, 49))
   angles = np.linspace(-55, 55, 1000) + 90
@@ -33,12 +34,15 @@ if __name__ == "__main__":
     y = int(math.sin(math.radians(angles[i])) * radius) + offy
     collisions[y, x] = 1.0
 
-  cv2.imshow("collisions", imresize(np.flipud(collisions), (300, 300), "nearest"))
+  collisions = imresize(collisions, (600, 600), "nearest")
+  collisions /= np.amax(collisions)
+
+  cv2.imshow("collisions", imresize(np.flipud(collisions * 255), (300, 300), "nearest"))
+  cv2.waitKey(0)
 
   for i in range(5):
     starttime = time.time()
-    restrict_range = [[0, 120], [0, 120], [0, 36]]
-    grid.updateCollisions(positions, collisions, restrict_range)
+    grid.updateCollisions(positions, collisions)
     print "time taken:", time.time() - starttime
 
   gridMap = np.flipud(grid.predict())
