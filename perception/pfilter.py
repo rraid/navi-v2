@@ -32,7 +32,7 @@ class ParticleFilter:
 
   def predict(self):
     dist = self.particles.astype(np.int)
-    grid = np.zeros(self.shape[:2])
+    grid = np.zeros(self.shape[:2][::-1])
     grid[dist[:,1], dist[:,0]] = 1.0
     return grid
 
@@ -49,7 +49,7 @@ class ParticleFilter:
     w = (r - l) / (2.0 * control.robot_radius)
 
     # update the position
-    T = self.particles[:,2:]
+    T = self.particles[:,2]
     V = v * np.concatenate((np.cos(T), np.sin(T)), axis=1) + \
         np.random.normal(0, 1.0, (self.particles.shape[0], 2))
     W = np.random.normal(w, 2.0, (self.particles.shape[0], 1))
@@ -61,7 +61,7 @@ class ParticleFilter:
       self.particles[:,i] = \
           np.clip(self.particles[:,i], 0, self.shape[i] * 0.9999999)
 
-  def observePosition(self, gps, compass, collisions, grid):
+  def observePosition(self, gps, compass, collisions):
     # first assign a probability for each of the particles
     particles = self.particles.astype(np.int)
     G = (gps[particles[:,1], particles[:,0]] >= 0.001) * 1.0

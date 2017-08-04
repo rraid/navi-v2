@@ -20,6 +20,8 @@ depthImage = []
 sonarReadings = [0,0,0,0,0,0,0,0,0]
 latitude = None
 longitude = None
+startHeading = None
+startTimer = None
 heading = None
 
 motorVelocity = [0,0]
@@ -32,7 +34,15 @@ def getSonarReadings():
   return sonarReadings
 
 def getGPSReadings():
-  return (latitude, longitude)
+  values =  (latitude, longitude)
+  if type(values) == type(None) or values[0] == None:
+    return None
+  offset = np.array([-74.462292, 40.521202]) # lat, long
+  topRight = np.array([-74.457549,40.523734 ])
+  values = np.array(values) - offset
+  values = np.divide(values, topRight - offset)
+  values = np.multiply(values, np.array([968,681]))
+  return values
 
 def getLidarReadings():
   global lidarReadings
@@ -48,7 +58,16 @@ def getZedReadings():
 
 def getCompassReadings():
   global heading
-  return heading
+  global startHeading
+  global startTimer
+  if heading == None:
+    return None
+  if startTimer == None:
+    startTimer = time.time()
+  if startHeading == None or time.time() - startTimer < 15.0:
+    startHeading = heading
+    return None
+  return startHeading - heading
   
 arduinoWrite = serial.Serial("/dev/ttyACM0" ,9600)
 def setMotorVelocity(left, right):
@@ -92,7 +111,7 @@ class ArduinoListener(Thread):
       
         try:
           buff = eval(buff.strip())
-          (latitude,longitude,heading) = buff
+          (longitude,latitude,heading) = buff
         except:
           print "error"
   def stop(self):

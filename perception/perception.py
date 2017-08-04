@@ -114,34 +114,45 @@ def getCollisionDistribution(lidar, zed):
   return np.clip(sensorSum, 0.0, 1.0)
 
 def getGPSDistribution(pos):
+  print pos
   global GPSD
   global mapShape
   shape = mapShape
-  offset = [0, 0] # lat, long
   # the 0.5 is because of the map ratio
-  x = int(round((pos[0] - offset[0]) / 0.5))
-  y = int(round((pos[1] - offset[1]) / 0.5))
+  try:
+    x = int(round(pos[0]))
+    y = int(round(pos[1]))
+  except:
+    return np.ones(shape) / float(np.prod(shape))
+    
+  print "POS:", shape[0], shape[1], y , x
 
-  if x <= 0 or x > shape[0] or y < 0 or y >= shape[1]:
+  if x < 0 or x >= shape[1] or y < 0 or y >= shape[0]:
     print("Error: GPS distribution out of bounds")
-    return np.array([[]]) # no distribution
+    return np.ones(shape) / float(np.prod(shape))
 
   distribution = np.zeros(shape, dtype=np.float32)
-  distribution[max(y - 18, 0) : min(y + 19, shape[1]),
-               max(x - 18, 0) : min(x + 19, shape[0])] = GPSD
+  miny = max(y - 18, 0)
+  maxy = min(y + 19, shape[0])
+  minx = max(x - 18, 0)
+  maxx = min(x + 19, shape[1])
+  distribution[miny : maxy,
+               minx : maxx] = GPSD[miny-y+18:maxy-y+18,minx-x+18:maxx-x+18]
   return distribution 
 
 def getCompassDistribution(degreesFromNorth):
   if degreesFromNorth == None:
     print("Error: Compass cannot be None")
-    return np.array([[]]) # no distribution
+    return np.ones((36, )) / 36.0
 
   degrees = (degreesFromNorth + 90.0) % 360.0 # account for offset
 
   D = np.arange(0, 360, 10.0) - degrees
   D = D + (D > 180) * -360
   D = D + (D > 180) * -360
-  D = np.exp(-np.multiply(D, D) / 60.0) # 30 degree standard deviation
+  D = D + (D < -180) * 360
+  D = D + (D < -180) * 360
+  D = np.exp(-np.multiply(D, D) / 80.0) # 40 degree standard deviation
   D /= np.sum(D)
   return D
 
@@ -181,9 +192,9 @@ class Perception(Thread):
           getZedDistribution(devhub.getZedReadings()))
       self.localizer.updatePosition(self.left,self.right)
       self.localizer.observePosition( \
-        getGPSDistribution(devhub.getGPSLocation()), \
-        getCompassDistribution(devhub.getCompassOrientation()), \
-        self.collisions)
+        getGPSDistribution(devhub.getGPSReadings()), \
+        getCompassDistribution(devhub.getCompassReadings()), \
+        self.collisions, self.pathmap)
       #if type(devhub.depthImage) != type(None) and devhub.depthImage != [] and \
       #   type(devhub.rgbImage) != type(None) and devhub.colorImage != []:
       #  self.detector.setImages(devhub.colorImage, devhub.depthImage)
