@@ -109,7 +109,6 @@ if __name__ == "__main__":
   pathmap = cv2.imread("../perception/pathmap.png")
 
   # initialize the perception module
-  #perceptor = perception(pathmap)
   perceptor = perception.Perception(pathmap)
   perceptor.start()
 
