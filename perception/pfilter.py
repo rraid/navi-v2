@@ -49,7 +49,7 @@ class ParticleFilter:
     w = (r - l) / (2.0 * control.robot_radius)
 
     # update the position
-    T = self.particles[:,2]
+    T = self.particles[:,2:3]
     V = v * np.concatenate((np.cos(T), np.sin(T)), axis=1) + \
         np.random.normal(0, 1.0, (self.particles.shape[0], 2))
     W = np.random.normal(w, 2.0, (self.particles.shape[0], 1))

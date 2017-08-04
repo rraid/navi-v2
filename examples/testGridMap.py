@@ -1,6 +1,10 @@
 import sys
 sys.path.append("../perception/")
+import perception
 import gridmap
+sys.path.append("../device/")
+import devhub
+import pfilter
 import cv2
 import numpy as np
 import time
@@ -8,43 +12,35 @@ import math
 from scipy.misc import imresize
 
 if __name__ == "__main__":
+  devhub.init()
   grid = gridmap.GridMap()
-  grid.initializeEmpty((275, 275))
+  grid.initializeEmpty((681, 968))
 
-  positions = [\
-  [25, 50, -90],
-  [50, 50, -80],
-  [75, 50, -70],
-  [100, 50, -60],
-  [125, 50, -50],
-  [150, 50, -40],
-  [175, 50, -30],
-  [200, 50, -20],
-  [225, 50, -10],
-  [250, 50, 0]]
-  positions = list(np.matlib.repmat(positions, 500, 1))
-
-  collisions = np.zeros((49, 49))
-  angles = np.linspace(-55, 55, 1000) + 90
-  offx = 24
-  offy = 24
-  for i in range(1000):
-    radius = max(0, i - 750) * 0.05 + 10
-    x = int(math.cos(math.radians(angles[i])) * radius) + offx
-    y = int(math.sin(math.radians(angles[i])) * radius) + offy
-    collisions[y, x] = 1.0
-
-  collisions = imresize(collisions, (600, 600), "nearest")
-  collisions /= np.amax(collisions)
-
-  cv2.imshow("collisions", imresize(np.flipud(collisions * 255), (300, 300), "nearest"))
-  cv2.waitKey(0)
-
-  for i in range(5):
+  perception.mapShape = (681,968)
+  localizer = pfilter.ParticleFilter()
+  localizer.initializeUniformly(5000, (968, 681, 360))
+  #gridmap = localizer.predict()
+  
+  for i in range(400):
     starttime = time.time()
+    
+    gps = perception.getGPSDistribution(devhub.getGPSReadings())
+    print gps.shape
+    compass = perception.getCompassDistribution(devhub.getCompassReadings())
+    print compass.shape
+    collisions = perception.getCollisionDistribution(
+      perception.getLidarDistribution(devhub.getLidarReadings()),
+      perception.getZedDistribution(devhub.getZedReadings()))
+    print collisions.shape
+    
+    localizer.updatePosition(0.0, 0.0)
+    localizer.observePosition(gps, compass, collisions)
+    positions = localizer.getDistribution()
+    
+    print "starting grid mapping"
     grid.updateCollisions(positions, collisions)
     print "time taken:", time.time() - starttime
 
-  gridMap = np.flipud(grid.predict())
-  cv2.imshow("grid", gridMap * 255)
-  cv2.waitKey(0)
+    gridMap = np.flipud(grid.predict())
+    cv2.imshow("grid", gridMap * 255)
+    cv2.waitKey(10)

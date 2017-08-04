@@ -30,8 +30,8 @@ class GridMap(Thread):
   def initializeEmpty(self, shape):
     self.x_meters = shape[1]
     self.y_meters = shape[0]
-    self.grid = np.zeros((int(self.y_meters / self.y_inc),
-                          int(self.x_meters / self.x_inc)), dtype=np.float32)
+    self.grid = np.zeros((int(self.y_meters),
+                          int(self.x_meters)), dtype=np.float32)
 
   def updateCollisions(self, positions, collisions, restrict_range=None, \
       particles=True):
@@ -92,20 +92,20 @@ class GridMap(Thread):
       if len(pts) == 0:
         return
       positions = np.array(positions)
-      xy = mx.nd.array(positions[:,:2], ctx=mx.gpu(0))
-      theta = mx.nd.array(positions[:,2], ctx=mx.gpu(0))\
+      xy = np.array(positions[:,:2])
+      theta = np.array(positions[:,2])\
           .reshape((positions.shape[0], 1)) * 3.14159265359 / 180.0
-      cos_theta = mx.nd.cos(theta)
-      sin_theta = mx.nd.sin(theta)
+      cos_theta = np.cos(theta)
+      sin_theta = np.sin(theta)
       # the collisions are in y, x format, so do rotation matrix weirdly
-      rot = mx.nd.concat(-sin_theta, cos_theta, cos_theta, sin_theta, dim=1)\
+      rot = np.concatenate((-sin_theta, cos_theta, cos_theta, sin_theta), axis=1)\
           .reshape((theta.shape[0] * 2, 2)).T
-      col = mx.nd.array(pts, ctx=mx.gpu(0))
-      col = mx.nd.dot(col, rot) + \
-          mx.nd.reshape(mx.nd.flip(xy, axis=1), (1, xy.size))
-      pts = col.reshape((pts.shape[0] * theta.shape[0], 2)).asnumpy().astype(np.int)
-      pts[:,1] = np.clip(pts[:,1], 0, self.grid.shape[0])
-      pts[:,0] = np.clip(pts[:,0], 0, self.grid.shape[1])
+      col = np.array(pts)
+      col = np.dot(col, rot) + \
+          np.reshape(np.fliplr(xy), (1, xy.size))
+      pts = col.reshape((pts.shape[0] * theta.shape[0], 2)).astype(np.int)
+      pts[:,1] = np.clip(pts[:,1], 0, self.grid.shape[0]-1)
+      pts[:,0] = np.clip(pts[:,0], 0, self.grid.shape[1]-1)
       self.grid = self.grid * 0.8
       self.grid[pts[:,1], pts[:,0]] = 1.0
 

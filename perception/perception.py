@@ -138,6 +138,7 @@ def getGPSDistribution(pos):
   maxx = min(x + 19, shape[1])
   distribution[miny : maxy,
                minx : maxx] = GPSD[miny-y+18:maxy-y+18,minx-x+18:maxx-x+18]
+  print "[GPS] shape:", shape
   return distribution 
 
 def getCompassDistribution(degreesFromNorth):

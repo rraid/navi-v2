@@ -51,6 +51,8 @@ def getLidarReadings():
 def getZedReadings():
   global depthColumns
   depth_image = zed.grabDepthFrame()
+  if type(depth_image) == None:
+    return None
   dataMid = depth_image.shape[0]/2
   subImage = depth_image[dataMid-50:dataMid+50,:]
   depthColumns = np.amin(subImage, axis=0)
@@ -73,7 +75,7 @@ arduinoWrite = serial.Serial("/dev/ttyACM0" ,9600)
 def setMotorVelocity(left, right):
   global motorVelocity
   #motorVelocity = [left,right]
-  writeBuff = "["+ str(int(left*100)) + "," + str(int(right*100)) + "]\n"
+  writeBuff = "["+ str(int(left*40)) + "," + str(int(right*40)) + "]\n"
   arduinoWrite.write(writeBuff)
     
 

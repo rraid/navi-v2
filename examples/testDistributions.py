@@ -15,12 +15,23 @@ def displayDistribution(name, grid):
 
 devhub.init()
 time.sleep(1)
+perception.mapShape = (681, 968)
+values = devhub.getZedReadings()
 
 while True:
-  values = devhub.getCompassReadings()
-  distribution = perception.getCompassDistribution(values)
-  distribution = np.repeat(distribution, 10, axis=0)
-  plot = np.repeat(np.reshape(np.arange(0.0, 1.0, 0.01) + 0.01, (100, 1)), 360, axis=1)
-  plot = (plot <= distribution) * 1.0
-  cv2.imshow("plot", np.flipud(plot))
+  values = np.array(devhub.getGPSReadings())
+  #values = np.array([-74.458470, 40.522266])
+  
+  print "new values after scale (image size): ", values
+  values = perception.getGPSDistribution(values)
+  print np.amax(values)
+  #values2 = devhub.getLidarReadings()
+  #grid = perception.getCollisionDistribution(perception.getZedDistribution#(values),perception.getLidarDistribution(values2))
+  cv2.imshow("dist", np.flipud(values>0) * 10.0)
   cv2.waitKey(10)
+
+#displayDistribution("Sonar", grid)
+#grid = perception.getLidarDistribution(values)
+#displayDistribution("Lidar", grid)
+#grid = perception.getZEDDistribution(values)
+#displayDistribution("ZED", grid)

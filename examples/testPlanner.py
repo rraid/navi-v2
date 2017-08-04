@@ -40,8 +40,8 @@ if __name__ == "__main__":
   #print world
 
   planner = planning.AStar(world)
-  start = (413, 137)
-  goal = (327, 686)
+  start = (432, 153)
+  goal = (585, 550)
   #start = (1, 1)
   #goal = (18, 18)
   #start = (16, 16)
@@ -56,16 +56,17 @@ if __name__ == "__main__":
   print("Time taken to find path:" + str(time.time() - starttime))
 
   #X, Y = np.meshgrid(np.arange(0, 20, 1), np.arange(0, 20, 1))
-  #Q = plt.quiver(X, Y, np.flipud(planner.xPotential), -np.flipud(planner.yPotential), scale=1/0.015)
+  #Q = plt.quiver(X, Y, np.flipud(planner.xPotential), -np.flipud(planner.yPotential), sc#ale=1/0.015)
   #plt.show()
 
   path = [start]
   curr = start
-  while not planner.reachedGoal(curr):
-    world[curr[1], curr[0]] = [0, 0, 1]
-    curr = planner.getNextState(curr)
-    path.append(curr)
-    #print path
+  with open("path.txt", "w") as fp:
+    while not planner.reachedGoal(curr):
+      world[curr[1], curr[0]] = [0, 0, 1]
+      curr = planner.getNextState(curr)
+      path.append(curr)
+      fp.write(str(curr) + "\n")
     #cv2.imshow("world", world)
     #cv2.waitKey(30)
   world[curr[1], curr[0]] = [0, 0, 1]
