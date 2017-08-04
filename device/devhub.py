@@ -108,7 +108,6 @@ class ArduinoListener(Thread):
       count = 0
       devType = None
       if buff[0] == '[':
-      
         try:
           buff = eval(buff.strip())
           (longitude,latitude,heading) = buff
@@ -129,7 +128,7 @@ class ROSListener(Thread):
 
 def init():
   global arduinoMega
-  global arduinoUno
+  #global arduinoUno
   zed.open()
   arduinoMega = ArduinoListener("ttyACM1")
   arduinoMega.start()
@@ -140,7 +139,7 @@ def init():
 
 def stop():
   global arduinoMega
-  global arduinoUno
+  #global arduinoUno
   arduinoMega.stop()
   arduinoMega.join()
   #arduinoUno.stop()
