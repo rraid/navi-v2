@@ -20,8 +20,10 @@ class ParticleFilter:
     self.shape = None
     self.left = 0.0
     self.right = 0.0
+    self.n_particles = 0
 
   def initializeUniformly(self, n_particles, shape):
+    self.n_particles = n_particles
     assert(len(shape) == 3)
     self.particles = np.multiply(np.random.random((n_particles, len(shape))) *
         0.9999999, np.array((shape)))
@@ -64,16 +66,19 @@ class ParticleFilter:
   def observePosition(self, gps, compass, collisions):
     # first assign a probability for each of the particles
     particles = self.particles.astype(np.int)
-    G = (gps[particles[:,1], particles[:,0]] >= 0.001) * 1.0
-    C = (compass[(particles[:,2] / 10) % 36] >= 0.001) * 1.0
+
+    G = gps[particles[:,1], particles[:,0]]
+    C = compass[(particles[:,2] / 10) % 36]
+    print G
     health = np.multiply(G, C)
     # do GPU patchSSD2d later
     if np.sum(health) == 0.0:
       print("Error: sum of healths is 0")
+      #self.initializeUniformly(self.n_particles, self.shape)
       return
-    # now resample
+    
     wheel = np.cumsum(health) / np.sum(health)
     probs = np.random.random((particles.shape[0], )) * 0.9999999
-    indeces = [np.min(np.argwhere(probs[i] < health)) \
+    indeces = [np.min(np.argwhere(probs[i] < wheel)) \
         for i in range(particles.shape[0])]
     self.particles = self.particles[indeces]

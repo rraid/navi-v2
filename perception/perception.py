@@ -14,7 +14,7 @@ from threading import Thread
 #bottom five sonars from left to right
 sonarAngle = np.array([-30, -5 , 5, 30, -45, -25, 0, 25, 45])
 
-mapShape = (480, 640)
+mapShape = [681, 968]
 
 _X = np.arange(-9.0, 9.5, 0.5)
 _Y = np.arange(-9.0, 9.5, 0.5)
@@ -114,7 +114,6 @@ def getCollisionDistribution(lidar, zed):
   return np.clip(sensorSum, 0.0, 1.0)
 
 def getGPSDistribution(pos):
-  print pos
   global GPSD
   global mapShape
   shape = mapShape
@@ -125,20 +124,17 @@ def getGPSDistribution(pos):
   except:
     return np.ones(shape) / float(np.prod(shape))
     
-  print "POS:", shape[0], shape[1], y , x
-
   if x < 0 or x >= shape[1] or y < 0 or y >= shape[0]:
     print("Error: GPS distribution out of bounds")
     return np.ones(shape) / float(np.prod(shape))
 
-  distribution = np.zeros(shape, dtype=np.float32)
+  distribution = np.zeros(shape[:2], dtype=np.float32)
   miny = max(y - 18, 0)
   maxy = min(y + 19, shape[0])
   minx = max(x - 18, 0)
   maxx = min(x + 19, shape[1])
   distribution[miny : maxy,
                minx : maxx] = GPSD[miny-y+18:maxy-y+18,minx-x+18:maxx-x+18]
-  print "[GPS] shape:", shape
   return distribution 
 
 def getCompassDistribution(degreesFromNorth):
@@ -167,7 +163,7 @@ class Perception(Thread):
     self.stopstate = False
     self.pathmap = pathmap
     self.collisions = np.zeros(self.pathmap.shape[:2])
-    self.localizer.initializeUniformly(5000, list(self.pathmap.shape[:2]) + [360])
+    self.localizer.initializeUniformly(5000, (968,681,360))
     #self.mapper.initializeEmpty(self.pathmap.shape[:2])
     #self.detector.setObjects([]) # no objects for now, we can use them later
     self.left = 0
@@ -175,6 +171,7 @@ class Perception(Thread):
 
     global mapShape
     mapShape = self.pathmap.shape
+
 
   def getCollisions(self):
     return np.copy(self.collisions)
@@ -195,21 +192,20 @@ class Perception(Thread):
       self.localizer.observePosition( \
         getGPSDistribution(devhub.getGPSReadings()), \
         getCompassDistribution(devhub.getCompassReadings()), \
-        self.collisions, self.pathmap)
+        self.collisions)
+        
+        
       #if type(devhub.depthImage) != type(None) and devhub.depthImage != [] and \
       #   type(devhub.rgbImage) != type(None) and devhub.colorImage != []:
       #  self.detector.setImages(devhub.colorImage, devhub.depthImage)
-      #self.localizer.setGrid(self.mapper.predict())
       #self.mapper.setPositions(self.localizer.predict())
-      #self.localizer.setSpeed(devhub.motorVelocity[0], devhub.motorVelocity[1])
-
       #self.mapper.setCollisions(self.collisions)
       currTime = time.time()
       print("[PERCEPTION] process time:", currTime - lastTime)
       lastTime = currTime
 
   def stop(self):
-#    self.localizer.stop()
+    self.localizer.stop()
 #    self.mapper.stop()
 #    self.detector.stop()
     self.stopstate = True

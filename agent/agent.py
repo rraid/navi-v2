@@ -6,12 +6,18 @@ import perception
 sys.path.append("../control/")
 import control
 import planning
+import pfilter
 import signal
 import serial
 import pygame
 import time
 import cv2
 import numpy as np
+
+# grab the pathmap from a file
+pathmap = cv2.imread("../perception/pathmap.png")
+  
+
 
 # Pygame ish
 bkg = (255, 255, 255)
@@ -98,29 +104,60 @@ def stopsigHandler(signo, frame):
   
   
 if __name__ == "__main__":
+  
   signal.signal(signal.SIGINT, stopsigHandler)
   print("Press Ctrl+C to stop")
-
-  # stop the motors from moving for now
+  ## Initalize Devhub
   devhub.init()
+  # stop the motors from moving for now
   devhub.setMotorVelocity(0, 0)
 
-  # grab the pathmap from a file
-  pathmap = cv2.imread("../perception/pathmap.png")
-
-  # initialize the perception module
+  ## Initalize Perception
   perceptor = perception.Perception(pathmap)
   perceptor.start()
 
-  # initialize the planner module
-  #planner = AStar(pathmap)
-  BCC = (100, 100)
-  #planner.setNextGoal(BCC)
 
-  # use the planner to do some control
+  ## Initalize Localizer
+  #localizer = pfilter.ParticleFilter()
+  #localizer.initializeUniformly(5000, (968,681,360))
+  #gridmap = localizer.predict()
+
+  ## Initialize Planner
+  world = np.flipud(cv2.imread("../perception/pathmap.png", cv2.IMREAD_GRAYSCALE) > 128).astype(np.float32)
+  planner = planning.AStar(world)
+  BCC = (100, 100)
+  planner.setNextGoal(BCC)
+  planner.setConstraintSpace(np.zeros(world.shape))
+  
+  ## Get Path
+  path = []
+  with open("../examples/path.txt", "r") as fp:
+    path.append(eval(fp.readline().strip()))
+  while devhub.getCompassReadings() == None:
+    print "Compass is None"
+    time.sleep(1)
+  
   while not stopSig:
+  
+    ##Used for localization
+    
+    positions = perceptor.localizer.getDistribution()
+    mean = np.mean(positions, axis=0)
+    var = np.sqrt(np.var(positions, axis=0))
+    print "STUFF: " ,mean, var
+    ################ 
+  
+  
     kbdcontrol = keyboardControl()
     devhub.setMotorVelocity(kbdcontrol[0], kbdcontrol[1])
+    
+    collisions = perceptor.getCollisions()
+    cy = collisions.shape[0] / 2
+    cx = collisions.shape[1] / 2
+    if np.sum(collisions[cy:cy+50, cx-10:cx+10]) > 0.01:
+      #devhub.setMotorVelocity(0, 0)
+      print "CAREFUL! COLLISION DETECTED AHEAD!"
+    
     cv2.imshow("collisions", np.flipud(perceptor.getCollisions()))
     cv2.waitKey(10)
   

@@ -17,17 +17,20 @@ devhub.init()
 time.sleep(1)
 perception.mapShape = (681, 968)
 values = devhub.getZedReadings()
-
+while devhub.getCompassReadings() == None:
+  print "npo"
 while True:
-  values = np.array(devhub.getGPSReadings())
+  #values = np.array(devhub.getGPSReadings())
   #values = np.array([-74.458470, 40.522266])
+  values = np.array(devhub.getCompassReadings())
   
-  print "new values after scale (image size): ", values
-  values = perception.getGPSDistribution(values)
-  print np.amax(values)
-  #values2 = devhub.getLidarReadings()
+  #print "new values after scale (image size): ", values
+  #values = perception.getGPSDistribution(values)
+  #print np.amax(values)
+  #values2 = np.array(perception.getLidarDistribution(devhub.getLidarReadings()))
   #grid = perception.getCollisionDistribution(perception.getZedDistribution#(values),perception.getLidarDistribution(values2))
-  cv2.imshow("dist", np.flipud(values>0) * 10.0)
+  
+  cv2.imshow("dist", perception.getCompassDistribution(values))
   cv2.waitKey(10)
 
 #displayDistribution("Sonar", grid)

@@ -19,10 +19,15 @@ if __name__ == "__main__":
 
   #robotPos = np.array([100.0, 100.0])
   #perception.mapShape = (550, 550)
-  perception.mapShape = [681,968]
-  print "HIIH"
+  #perception.mapShape = [681,968]
   starttime = time.time()
-  for i in range(40):
+  
+  
+  while devhub.getCompassReadings() == None:
+    print "Compass is None"
+    time.sleep(1)
+    
+  for i in range(80):
     print "LOOPING"
     currtime = time.time()
     #robotPos += np.array([0.0, 0.0])
