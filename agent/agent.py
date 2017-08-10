@@ -14,6 +14,9 @@ import time
 import cv2
 import numpy as np
 
+perceptor = None
+localizer= None
+
 # grab the pathmap from a file
 pathmap = cv2.imread("../perception/pathmap.png")
   
@@ -98,7 +101,8 @@ def stopsigHandler(signo, frame):
   devhub.setMotorVelocity(0, 0)
   devhub.stop()
   #planner.stop()
-  #perceptor.stop()
+  perceptor.stop()
+  localizer.stop()
   time.sleep(1)
   sys.exit(0)
   
@@ -109,6 +113,9 @@ if __name__ == "__main__":
   print("Press Ctrl+C to stop")
   ## Initalize Devhub
   devhub.init()
+  while devhub.getCompassReadings() == None:
+    print "Compass is None"
+    time.sleep(1)
   # stop the motors from moving for now
   devhub.setMotorVelocity(0, 0)
 
@@ -118,9 +125,10 @@ if __name__ == "__main__":
 
 
   ## Initalize Localizer
-  #localizer = pfilter.ParticleFilter()
-  #localizer.initializeUniformly(5000, (968,681,360))
-  #gridmap = localizer.predict()
+  localizer = pfilter.ParticleFilter()
+  localizer.initializeUniformly(5000, (968,681,360))
+  localizer.start()
+  gridmap = localizer.predict()
 
   ## Initialize Planner
   world = np.flipud(cv2.imread("../perception/pathmap.png", cv2.IMREAD_GRAYSCALE) > 128).astype(np.float32)
@@ -133,33 +141,38 @@ if __name__ == "__main__":
   path = []
   with open("../examples/path.txt", "r") as fp:
     path.append(eval(fp.readline().strip()))
-  while devhub.getCompassReadings() == None:
-    print "Compass is None"
-    time.sleep(1)
-  
+    
+  devhubTime = time.time()
   while not stopSig:
   
     ##Used for localization
-    
-    positions = perceptor.localizer.getDistribution()
+  
+    #localizer.updatePosition(devhub.motorVelocity[0],devhub.motorVelocity[1])
+    #localizer.observePosition( \
+          #perception.getGPSDistribution(devhub.getGPSReadings()), \
+          #perception.getCompassDistribution(devhub.getCompassReadings()), \
+          #collisions)
+    positions = localizer.getDistribution()
     mean = np.mean(positions, axis=0)
     var = np.sqrt(np.var(positions, axis=0))
     print "STUFF: " ,mean, var
     ################ 
-  
-  
+    
+    
     kbdcontrol = keyboardControl()
     devhub.setMotorVelocity(kbdcontrol[0], kbdcontrol[1])
-    
-    collisions = perceptor.getCollisions()
+    #print "devhub Time: " , time.time() - devhubTime
+    #devhubTime = time.time()
+    collisions = perception.getCollisions()
     cy = collisions.shape[0] / 2
     cx = collisions.shape[1] / 2
     if np.sum(collisions[cy:cy+50, cx-10:cx+10]) > 0.01:
       #devhub.setMotorVelocity(0, 0)
       print "CAREFUL! COLLISION DETECTED AHEAD!"
     
-    cv2.imshow("collisions", np.flipud(perceptor.getCollisions()))
+    cv2.imshow("Map", np.flipud(np.add(localizer.predict(),perception.getCollisions())))
     cv2.waitKey(10)
+    print control.moveForward(1,1)
   
   
 

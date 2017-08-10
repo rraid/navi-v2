@@ -8,6 +8,7 @@ import time
 zed.open()
 
 while True:
+
   frame = zed.grabDepthFrame()
   if type(frame) == type(None):
     time.sleep(0.01)

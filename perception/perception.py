@@ -22,6 +22,8 @@ _X, _Y = np.meshgrid(_X, _Y)
 GPSD = np.exp(-(np.multiply(_X, _X) + np.multiply(_Y, _Y)) / (2.0 * 2.5))
 GPSD /= np.sum(GPSD)
 
+collisions = np.zeros(mapShape)
+
 def validDepth(d):
   return d != 0 and d != float("inf") and d != float("-inf") and not math.isnan(d)
 
@@ -65,10 +67,10 @@ def getLidarDistribution(pts):
   c = np.cos(angleDist)
   s = np.sin(angleDist)
   
-  y = np.clip(np.multiply(s, pts).astype(int) + 300,0,600)
-  x = np.clip(np.multiply(c, pts).astype(int) + 300,0,600)
+  y = np.clip(np.multiply(s, pts).astype(int) + mapShape[1]/2,0,mapShape[1])
+  x = np.clip(np.multiply(c, pts).astype(int) + mapShape[0]/2,0,mapShape[0])
 
-  lidarArray = np.zeros((600,600))
+  lidarArray = np.zeros((mapShape[0],mapShape[1]))
   
   lidarArray[x,y] = 1.0
   return lidarArray
@@ -82,10 +84,10 @@ def getZedDistribution(columns):
   c = np.cos(angleDist)
   s = np.sin(angleDist)
   
-  y = np.clip((np.multiply(s, columns) + 0.3).astype(int) + 300,0,600)
-  x = np.clip(np.multiply(c, columns).astype(int) + 300,0,600)
+  y = np.clip((np.multiply(s, columns) + 0.3).astype(int) + mapShape[1]/2,0,mapShape[1])
+  x = np.clip(np.multiply(c, columns).astype(int) + mapShape[0]/2,0,mapShape[0])
   
-  zedArray = np.zeros((600,600))
+  zedArray = np.zeros((mapShape[0],mapShape[1]))
   zedArray[x,y] = 1.0
   return zedArray
 
@@ -102,8 +104,8 @@ def getCollisionDistribution(lidar, zed):
     return []
   #sizex = max(lidar.shape[0],zed.shape[0])
   #sizey = max(lidar.shape[1],zed.shape[1])
-  sizex = 600
-  sizey = 600
+  sizex = mapShape[0]
+  sizey = mapShape[1]
   sensorSum = np.zeros((sizex,sizey))
 
   sensorSum = addMatrixFromCenter(sensorSum,lidar)
@@ -152,18 +154,21 @@ def getCompassDistribution(degreesFromNorth):
   D = np.exp(-np.multiply(D, D) / 80.0) # 40 degree standard deviation
   D /= np.sum(D)
   return D
+  
+def getCollisions():
+    return np.copy(collisions)
 
 class Perception(Thread):
   def __init__(self, pathmap):
     Thread.__init__(self)
     currTime = time.time()
-    self.localizer = pfilter.ParticleFilter()
+    #self.localizer = pfilter.ParticleFilter()
     #self.mapper = GridMap()
     #self.detector = ObjectDetector()
     self.stopstate = False
     self.pathmap = pathmap
-    self.collisions = np.zeros(self.pathmap.shape[:2])
-    self.localizer.initializeUniformly(5000, (968,681,360))
+    
+    #self.localizer.initializeUniformly(5000, (968,681,360))
     #self.mapper.initializeEmpty(self.pathmap.shape[:2])
     #self.detector.setObjects([]) # no objects for now, we can use them later
     self.left = 0
@@ -171,28 +176,25 @@ class Perception(Thread):
 
     global mapShape
     mapShape = self.pathmap.shape
-
-
-  def getCollisions(self):
-    return np.copy(self.collisions)
     
   def setSpeed(self, left, right):
     self.left = left
     self.right = right
 
   def run(self):
-    lastTime = time.time()
+    global collisions
+    currTime = time.time()
     #self.mapper.start()
     #self.detector.start()
     while not self.stopstate: # spin thread
-      self.collisions = getCollisionDistribution(
+      collisions = getCollisionDistribution(
           getLidarDistribution(devhub.getLidarReadings()), \
           getZedDistribution(devhub.getZedReadings()))
-      self.localizer.updatePosition(self.left,self.right)
-      self.localizer.observePosition( \
-        getGPSDistribution(devhub.getGPSReadings()), \
-        getCompassDistribution(devhub.getCompassReadings()), \
-        self.collisions)
+      #self.localizer.updatePosition(self.left,self.right)
+      #self.localizer.observePosition( \
+        #getGPSDistribution(devhub.getGPSReadings()), \
+        #getCompassDistribution(devhub.getCompassReadings()), \
+        #self.collisions)
         
         
       #if type(devhub.depthImage) != type(None) and devhub.depthImage != [] and \
@@ -200,12 +202,11 @@ class Perception(Thread):
       #  self.detector.setImages(devhub.colorImage, devhub.depthImage)
       #self.mapper.setPositions(self.localizer.predict())
       #self.mapper.setCollisions(self.collisions)
+      print("[PERCEPTION] process time:", time.time() - currTime)
       currTime = time.time()
-      print("[PERCEPTION] process time:", currTime - lastTime)
-      lastTime = currTime
 
   def stop(self):
-    self.localizer.stop()
+    #self.localizer.stop()
 #    self.mapper.stop()
 #    self.detector.stop()
     self.stopstate = True

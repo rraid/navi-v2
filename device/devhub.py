@@ -77,7 +77,8 @@ def setMotorVelocity(left, right):
   #motorVelocity = [left,right]
   writeBuff = "["+ str(int(left*40)) + "," + str(int(right*40)) + "]\n"
   arduinoWrite.write(writeBuff)
-    
+def getMotorVelocity():
+  return motorVelocity
 
 def lidarCallbackHandler(scan):
   global lidarReadings
@@ -136,8 +137,8 @@ def init():
   arduinoMega.start()
   #arduinoUno = ArduinoListener("ttyACM0")
   #arduinoUno.start()
-  rosReader = ROSListener()
-  rosReader.start()
+  #rosReader = ROSListener()
+  #rosReader.start()
 
 def stop():
   global arduinoMega
@@ -147,6 +148,6 @@ def stop():
   #arduinoUno.stop()
   #arduinoUno.join()
   zed.close()
-  ros.signal_shutdown("Ending Process")
+  #ros.signal_shutdown("Ending Process")
   time.sleep(1)
   sys.exit()

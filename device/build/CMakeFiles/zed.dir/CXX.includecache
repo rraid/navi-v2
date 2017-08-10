@@ -7,11 +7,15 @@
 #IncludeRegexTransform: 
 
 /home/nvidia/navi-v2/device/src/libzed.h
+sl/Camera.hpp
+-
 
 /home/nvidia/navi-v2/device/src/zed.cpp
 stdio.h
 -
 string.h
+-
+math.h
 -
 libzed.h
 /home/nvidia/navi-v2/device/src/libzed.h

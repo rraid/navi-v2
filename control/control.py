@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 wheel_radius = 0.14 # meters
 robot_radius = 0.343 # meters
@@ -27,6 +28,7 @@ def moveForward(distance, dt):
   return vel, vel
 
 def spinAround(dTheta, dt):
+  dTheta = dTheta * math.pi/180
   K = 2.0 * math.pi * wheel_radius * RPM / 60.0
   T = dTheta * math.pi / (180.0 * dt)
   vel = np.clip(T * 2.0 * robot_radius / K, -1.0, 1.0)

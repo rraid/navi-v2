@@ -14,6 +14,9 @@ class AStar(Thread):
   
   def __init__(self, pathmap):
     Thread.__init__(self)
+    
+    currTime = time.time()
+    
     self.stopstate = False
     self.c_space = None
     self.energyCost = 0.01
@@ -59,6 +62,8 @@ class AStar(Thread):
     return path
 
   def computePath(self, pose):
+    lastTime = time.time()
+  
     closed = np.zeros(self.c_space.shape, dtype=np.uint8)
     opened = []
     gScore = np.zeros(self.c_space.shape, dtype=np.float32)
@@ -105,6 +110,10 @@ class AStar(Thread):
 
     self.xPotential = xPotential
     self.yPotential = yPotential
+    
+    currTime = time.time()
+    print("[PLANNING] process time:", currTime - lastTime)
+    lastTime = currTime
 
   def getNextState(self, pose):
     return (int(self.xPotential[pose[1], pose[0]] + pose[0]), \

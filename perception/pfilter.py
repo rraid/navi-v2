@@ -1,11 +1,15 @@
 import sys
 sys.path.append("../control/")
 import control
+sys.path.append("../device")
+import perception
+import devhub
 import math
 import random
 import numpy as np
 import mxnet as mx
 import time
+from threading import Thread
 
 def rotateImage(image, angle):
   image_center = tuple(np.array(image.shape)/2)
@@ -13,14 +17,17 @@ def rotateImage(image, angle):
   result = cv2.warpAffine(image, rot_mat, image.shape,flags=cv2.INTER_CUBIC)
   return result
 
-class ParticleFilter:
+class ParticleFilter(Thread):
   def __init__(self):
+    Thread.__init__(self)
     self.particles = None
     self.timeUpdated = time.time()
     self.shape = None
     self.left = 0.0
     self.right = 0.0
     self.n_particles = 0
+    self.stopstate = False
+    self.currTime = time.time()
 
   def initializeUniformly(self, n_particles, shape):
     self.n_particles = n_particles
@@ -82,3 +89,18 @@ class ParticleFilter:
     indeces = [np.min(np.argwhere(probs[i] < wheel)) \
         for i in range(particles.shape[0])]
     self.particles = self.particles[indeces]
+    
+  def run(self):
+    while not self.stopstate:
+      currTime = time.time()
+      self.lastTime = currTime
+      self.updatePosition(devhub.getMotorVelocity()[0],devhub.getMotorVelocity()[1])
+      print("[LOCALIZER] process time on update:", time.time() - self.currTime)
+      self.observePosition(\
+          perception.getGPSDistribution(devhub.getGPSReadings()), \
+          perception.getCompassDistribution(devhub.getCompassReadings()), \
+          perception.getCollisions())
+      print("[LOCALIZER] process time on observe:", time.time() - self.currTime)
+
+  def stop(self):
+    self.stopstate = True
