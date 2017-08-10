@@ -6,12 +6,12 @@
 */
 ///////////////////////////////////////////////
 #include <Wire.h>
-#include <NewPing.h>
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
+#include "compass.h"
 
 //Gyro - Compass
-float heading = 0.0;
+int heading = 0;
 
 //GPS
 static const int RXPin = 11, TXPin = 12;
@@ -21,35 +21,23 @@ SoftwareSerial ss(RXPin, TXPin);
 double latitude = 40.521788;
 double longitude =  -74.4608355;
 
-//Sonar
-#define SONAR_NUM     9 // Number of sensors.
-#define MAX_DISTANCE 200 // Maximum distance (in cm) to ping.
-#define PING_INTERVAL 29 // Milliseconds between sensor pings (29ms is about the min to avoid cross-sensor echo).
-unsigned int sonar_value[SONAR_NUM] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-double lastPingTime;
-uint8_t currentSensor = 0;          // Keeps track of which sensor is active.
-
 #define BUFSIZE 256
 const int safesize = BUFSIZE / 2;
 char write_buffer[BUFSIZE];
 
-NewPing sonar[SONAR_NUM] = {     // Sensor object array.
-  NewPing(24, 24, MAX_DISTANCE), // Each sensor's trigger pin, echo pin, and max distance to ping.
-  NewPing(26, 26, MAX_DISTANCE),
-  NewPing(28, 28, MAX_DISTANCE),
-  NewPing(30, 30, MAX_DISTANCE),
-  NewPing(22, 22, MAX_DISTANCE),
-  NewPing(23, 23, MAX_DISTANCE),
-  NewPing(25, 25, MAX_DISTANCE),
-  NewPing(27, 27, MAX_DISTANCE),
-  NewPing(29, 29, MAX_DISTANCE)
-};
-
 void setup() {
   Serial.begin(9600);
   ss.begin(GPSBaud);
-  lastPingTime = millis() + 75;           // First ping starts at 75ms, gives time for the Arduino to chill before starting.
-  gyroSetup();
+  Wire.begin();
+  compass_x_offset = -112.66;
+  compass_y_offset = 992.60;
+  compass_z_offset = 546.70;
+  compass_x_gainError = 1.01;
+  compass_y_gainError = 1.09;
+  compass_z_gainError = 0.99;
+
+  compass_init(2);
+
 }
 
 void loop()
@@ -67,26 +55,10 @@ void getGPS() {
   }
 }
 
-void getsonar_value() {
-  if (millis() >= lastPingTime + PING_INTERVAL) {         // Is it this sensor's time to ping?
-    sonar[currentSensor].timer_stop();          // Make sure previous timer is canceled before starting a new ping (insurance).
-    ++currentSensor;                            // Sensor being accessed.
-    if (currentSensor == SONAR_NUM) currentSensor = 0; // Sensor ping cycle complete, do something with the results.
-    sonar_value[currentSensor] = 0;                      // Make distance zero in case there's no ping echo for this sensor.
-    sonar[currentSensor].ping_timer(echoCheck); // Do the ping (processing continues, interrupt will call echoCheck to look for echo).
-    lastPingTime = millis();
-  }
-}
-
-void echoCheck() { // If ping received, set the sensor distance to array.
-  if (sonar[currentSensor].check_timer())
-    sonar_value[currentSensor] = (sonar[currentSensor].ping_result/2) * 3.4029;
-}
 void getCompass(){
-  heading = gyroLoop() *180/PI;
-
+  compass_heading();
+  heading = (int)(bearing + 260) % 360;
 }
-
 
 char ftos [safesize];
 void writeSerial()
