@@ -32,7 +32,7 @@ void setup() {
   leftMotor.Set(0); //SET INITIAL MOTOR VALUES TO ZERO
   rightMotor.Set(0); //(100 MAX FORWARD, -100 MAX BACK)
   
-  Serial.begin(9600);
+  Serial.begin(57600);
 }
 
 void loop() 
