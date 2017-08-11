@@ -188,7 +188,7 @@ bool getPose(void* poseGet){
   ((float*)poseGet)[5] = rotation.z;
   return true;
 }
-
+sl::Mesh meshCopy;
 bool getMeshSizes(int* vertices, int* triangles){
   if (zedGrab != SUCCESS){
     sl::sleep_ms(1);
@@ -206,11 +206,14 @@ bool getMeshSizes(int* vertices, int* triangles){
   camera_projection(1, 2) = (-1.f * camLeft.image_size.height + 2.f * camLeft.cy) / camLeft.image_size.height;
   camera_projection(3, 3) = 0.f;
   cl = mesh.getSurroundingList(camera_projection,10.0f);
+  
+  meshCopy = mesh;
+  
   int vertSize = 0;
   int triSize = 0;
   for(auto &i: cl){
-    vertSize += mesh[i].vertices.size() * 3;
-    triSize += mesh[i].triangles.size() * 3;
+    vertSize += meshCopy[i].vertices.size() * 3;
+    triSize += meshCopy[i].triangles.size() * 3;
     //Multiply by 3 to account for x, y, z
   }
   *vertices = vertSize;
@@ -226,19 +229,18 @@ bool getMeshData(float* vertices, int* triangles){
   int vCount = 0;
   int tCount = 0;
   for(size_t &i: cl ){
-      for(size_t j = 0; j < mesh[i].vertices.size(); j++){
-
-        vertices[vCount]   = mesh[i].vertices[j][0];
-        vertices[vCount+1] = mesh[i].vertices[j][1];
-        vertices[vCount+2] = mesh[i].vertices[j][2];
-        vCount +=3;
-      }
-      for(size_t j = 0; j < mesh[i].triangles.size(); j++){
-        triangles[tCount]   = mesh[i].triangles[j][0];
-        triangles[tCount+1] = mesh[i].triangles[j][1];
-        triangles[tCount+2] = mesh[i].triangles[j][2];
-        tCount +=3;
-      }
+    for(size_t j = 0; j < meshCopy[i].vertices.size(); j++){
+      vertices[vCount]   = meshCopy[i].vertices[j][0];
+      vertices[vCount+1] = meshCopy[i].vertices[j][1];
+      vertices[vCount+2] = meshCopy[i].vertices[j][2];
+      vCount +=3;
+    }
+    for(size_t j = 0; j < meshCopy[i].triangles.size(); j++){
+      triangles[tCount]   = meshCopy[i].triangles[j][0];
+      triangles[tCount+1] = meshCopy[i].triangles[j][1];
+      triangles[tCount+2] = meshCopy[i].triangles[j][2];
+      tCount +=3;
+    }
   }
   return true;
 }

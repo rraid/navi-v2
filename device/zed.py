@@ -59,6 +59,7 @@ def getMeshData():
   vSize, tSize = getMeshSizes()
   if vSize == 0 or tSize == 0:
     return None
+  #print "Sizes python: ", ctypes.sizeof(ctypes.c_float) * vSize,    ctypes.sizeof(ctypes.c_int) * tSize
   vertices_pointer = ctypes.cast((ctypes.c_float * vSize)(), ctypes.POINTER(ctypes.c_float))
   triangles_pointer = ctypes.cast((ctypes.c_int * tSize)(), ctypes.POINTER(ctypes.c_int))
   res = libzed.getMeshData(vertices_pointer,triangles_pointer)
@@ -67,6 +68,5 @@ def getMeshData():
   else:
     vertices = np.ctypeslib.as_array(vertices_pointer, shape = (1,vSize))
     triangles = np.ctypeslib.as_array(triangles_pointer, shape = (1,tSize))
-    print len(vertices[0,:])
     return np.array([vertices[0,:],triangles[0,:]])
   
