@@ -27,9 +27,9 @@ path = np.array([
   [0, 19],
   [0, 20]])
 
-#path = np.concatenate((path, np.fliplr(path)), axis=0)
+path = np.concatenate((path, np.fliplr(path)), axis=0)
 path += np.array([10, 10])
-#path[20:,1] += 20
+path[20:,1] += 20
 
 grid = np.zeros((64, 64))
 grid[path[:,1], path[:,0]] = 0.5
