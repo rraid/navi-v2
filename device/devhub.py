@@ -27,7 +27,7 @@ heading = None
 motorVelocity = [0,0]
 
 arduinoMega = None
-#arduinoUno = None
+arduinoUno = None
 rosReader = None
 
 def getSonarReadings():
@@ -71,13 +71,9 @@ def getCompassReadings():
     return None
   return startHeading - heading
   
-arduinoWrite = serial.Serial("/dev/ttyACM0" ,)
 def setMotorVelocity(left, right):
   global motorVelocity
   motorVelocity = [left,right]
-  writeBuff = "["+ str(int(left)) + "," + str(int(right)) + "]\n"
-  print writeBuff
-  arduinoWrite.write(writeBuff)
   
 def getMotorVelocity():
   return motorVelocity
@@ -90,7 +86,7 @@ def lidarCallbackHandler(scan):
 class ArduinoListener(Thread):
 
   def __init__(self, idName):
-    print "Ard. thread Started"
+    print "Ard. listener Started"
     Thread.__init__(self)
     self.arduino = serial.Serial("/dev/" + idName ,9600)
     self.stopstate = False
@@ -118,6 +114,29 @@ class ArduinoListener(Thread):
           (longitude,latitude,heading) = buff
         except:
           print "error"
+
+  def stop(self):
+    self.stopstate = True
+
+class ArduinoPublisher(Thread):
+  def __init__(self, idName):
+    print "Ard. publisher Started"
+    Thread.__init__(self)
+    self.arduino = serial.Serial("/dev/" + idName ,9600)
+    self.stopstate = False
+
+  def run(self):
+    while not self.stopstate:
+      self.writeSerial()
+      time.sleep(0.1) # 10 MHz refresh
+
+  def writeSerial(self):
+    global motorVelocity
+    left = motorVelocity[0]
+    right = motorVelocity[1]
+    writeBuff = "["+ str(int(left)) + "," + str(int(right)) + "]\n"
+    arduinoWrite.write(writeBuff)
+
   def stop(self):
     self.stopstate = True
 
@@ -133,22 +152,22 @@ class ROSListener(Thread):
 
 def init():
   global arduinoMega
-  #global arduinoUno
+  global arduinoUno
   zed.open()
   arduinoMega = ArduinoListener("ttyACM1")
   arduinoMega.start()
-  #arduinoUno = ArduinoListener("ttyACM0")
-  #arduinoUno.start()
+  arduinoUno = ArduinoListener("ttyACM0")
+  arduinoUno.start()
   #rosReader = ROSListener()
   #rosReader.start()
 
 def stop():
   global arduinoMega
-  #global arduinoUno
+  global arduinoUno
   arduinoMega.stop()
   arduinoMega.join()
-  #arduinoUno.stop()
-  #arduinoUno.join()
+  arduinoUno.stop()
+  arduinoUno.join()
   zed.close()
   #ros.signal_shutdown("Ending Process")
   time.sleep(1)
