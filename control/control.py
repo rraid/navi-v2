@@ -38,7 +38,8 @@ def spinAround(dTheta, dt):
 def followTraj(pose, path, targetAngle, k=3):
   if len(path) == 0:
     return 0.0, 0.0
-  if len(path) == 1:
+  if len(path) == 1 or \
+      np.linalg.norm(np.array(path[-1]) - np.array(pose[:2])) < 0.5:
     dTheta = targetAngle - pose[2]
     dTheta %= 360.0
     if dTheta > 180.0:
@@ -74,8 +75,8 @@ def followTraj(pose, path, targetAngle, k=3):
   # grab the speeds
   left1, right1 = moveForward(dist, 1.0)
   left2, right2 = spinAround(dTheta, 1.0)
-  left = 0.6 * left1 + 0.4 * left2
-  right = 0.6 * right1 + 0.4 * right2
+  left = 1.0 * left1 + 4.0 * left2
+  right = 1.0 * right1 + 4.0 * right2
 
   # renormalize
   normalization = max(abs(left), abs(right))
