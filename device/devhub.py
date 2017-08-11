@@ -71,12 +71,14 @@ def getCompassReadings():
     return None
   return startHeading - heading
   
-arduinoWrite = serial.Serial("/dev/ttyACM0" ,9600)
+arduinoWrite = serial.Serial("/dev/ttyACM0" ,)
 def setMotorVelocity(left, right):
   global motorVelocity
-  #motorVelocity = [left,right]
-  writeBuff = "["+ str(int(left*40)) + "," + str(int(right*40)) + "]\n"
+  motorVelocity = [left,right]
+  writeBuff = "["+ str(int(left)) + "," + str(int(right)) + "]\n"
+  print writeBuff
   arduinoWrite.write(writeBuff)
+  
 def getMotorVelocity():
   return motorVelocity
 
