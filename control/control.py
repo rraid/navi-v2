@@ -3,8 +3,9 @@ import numpy as np
 import time
 
 wheel_radius = 0.14 # meters
-robot_radius = .343 # meters
-RPM = 13.0
+robot_radius = 0.343 # meters
+RPM = 1.3
+
 
 def getTrajectory(pose, k, path): # no more potential field
   if len(path) == 0:

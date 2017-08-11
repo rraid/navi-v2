@@ -102,14 +102,6 @@ void ramp(){
       rightVel--;
     }
     lasttime = millis();
-    Serial.print("TV0");
-    Serial.print(target_vel[0]);
-    Serial.print("TV1");
-    Serial.print(target_vel[1]);
-    Serial.print("LV");
-    Serial.print(leftVel);
-    Serial.print("RV");
-    Serial.println(rightVel);
   }
 }
 

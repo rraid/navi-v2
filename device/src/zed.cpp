@@ -67,7 +67,7 @@ bool zed_open() {
   InitParameters initParameters;
   initParameters.camera_resolution = RESOLUTION_HD720;
   initParameters.depth_mode = DEPTH_MODE_PERFORMANCE; //need quite a powerful graphic card in QUALITY
-  initParameters.coordinate_system = COORDINATE_SYSTEM_RIGHT_HANDED_Y_UP; // OpenGL's coordinate system is right_handed
+  initParameters.coordinate_system = COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP; // OpenGL's coordinate system is right_handed
   initParameters.coordinate_units = UNIT_METER; // set meter as the OpenGL world will be in meters
   //printf("Initalized Basic");
   
