@@ -5,24 +5,6 @@ import time
 wheel_radius = 0.14 # meters
 robot_radius = 0.343 # meters
 RPM = 1.3
-lastwritetime = [time.time()]
-target_vel = np.zeros((2, ))
-source_vel = np.zeros((2, 3))
-pid_coeff = np.zeros((2, 3))
-pid_coeff[:,0] = 0.5 # half speed up per second
-
-def PID(target, source, timestamp, pid_coeff):
-  dt = min(time.time() - timestamp[0], 1.0) # do not go higher than 1.0
-  perr = target - source[:,0]
-  ierr = source[:,1] + perr
-  derr = perr - source[:,2]
-  out = np.sum(np.multiply(\
-      np.concatenate((perr, ierr, derr), axis=1),
-      pid_coeff), axis=1) * dt
-  source[:,0] = out
-  source[:,1] = ierr
-  source[:,2] = perr
-  return out
 
 def getTrajectory(pose, k, path): # no more potential field
   # find sse

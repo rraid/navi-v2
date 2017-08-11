@@ -88,7 +88,7 @@ class ArduinoListener(Thread):
   def __init__(self, idName):
     print "Ard. listener Started"
     Thread.__init__(self)
-    self.arduino = serial.Serial("/dev/" + idName ,9600)
+    self.arduino = serial.Serial("/dev/" + idName ,57600)
     self.stopstate = False
 
   def run(self):
@@ -119,10 +119,11 @@ class ArduinoListener(Thread):
     self.stopstate = True
 
 class ArduinoPublisher(Thread):
+  
   def __init__(self, idName):
     print "Ard. publisher Started"
     Thread.__init__(self)
-    self.arduino = serial.Serial("/dev/" + idName ,9600)
+    self.arduino = serial.Serial("/dev/" + idName ,57600)
     self.stopstate = False
 
   def run(self):
@@ -134,8 +135,9 @@ class ArduinoPublisher(Thread):
     global motorVelocity
     left = motorVelocity[0]
     right = motorVelocity[1]
+    print left,right
     writeBuff = "["+ str(int(left)) + "," + str(int(right)) + "]\n"
-    arduinoWrite.write(writeBuff)
+    self.arduino.write(writeBuff)
 
   def stop(self):
     self.stopstate = True
@@ -156,7 +158,7 @@ def init():
   zed.open()
   arduinoMega = ArduinoListener("ttyACM1")
   arduinoMega.start()
-  arduinoUno = ArduinoListener("ttyACM0")
+  arduinoUno = ArduinoPublisher("ttyACM0")
   arduinoUno.start()
   #rosReader = ROSListener()
   #rosReader.start()
