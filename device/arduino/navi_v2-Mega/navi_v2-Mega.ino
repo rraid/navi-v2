@@ -28,7 +28,7 @@ char write_buffer[BUFSIZE];
 int delayGPS;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(57600);
   ss.begin(GPSBaud);
   Wire.begin();
   compass_x_offset = -112.66;
