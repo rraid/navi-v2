@@ -10,7 +10,7 @@
 #include <SoftwareSerial.h>
 #include "compass.h"
 
-//Gyro - Compass
+//Compass
 int heading = 0;
 
 //GPS
@@ -25,6 +25,8 @@ double longitude =  -74.4608355;
 const int safesize = BUFSIZE / 2;
 char write_buffer[BUFSIZE];
 
+int delayGPS;
+
 void setup() {
   Serial.begin(9600);
   ss.begin(GPSBaud);
@@ -37,7 +39,6 @@ void setup() {
   compass_z_gainError = 0.99;
 
   compass_init(2);
-
 }
 
 void loop()
@@ -49,6 +50,8 @@ void loop()
 }
 
 void getGPS() {
+  while (ss.available());
+    gps.encode(ss.read());
   if (gps.location.isValid()) {
     latitude = gps.location.lat();
     longitude = gps.location.lng();

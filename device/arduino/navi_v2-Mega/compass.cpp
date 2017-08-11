@@ -351,9 +351,9 @@ void compass_init(int gain){
   // Writing the register value 0000 0011 for Idel
   Wire.endTransmission();
   
-  Serial.print("Gain updated to  = ");
-  Serial.print(compass_gain_fact);
-  Serial.println(" mG/bit");
+  //Serial.print("Gain updated to  = ");
+  //Serial.print(compass_gain_fact);
+  //Serial.println(" mG/bit");
     
 }
 
