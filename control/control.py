@@ -3,6 +3,7 @@ import numpy as np
 import time
 
 wheel_radius = 0.14 # meters
+
 robot_radius = 0.343 # meters
 RPM = 1.3
 

@@ -96,9 +96,9 @@ class AStar(Thread):
           continue
         tentative_gScore = gScore[current[1], current[0]] + \
             self.getCost(current, action, 1, c_space)
-        tentative_fScore = tentative_gScore + \
-            self.distanceCost(successor, pose[:2])
-        #tentative_fScore = tentative_gScore
+        #tentative_fScore = tentative_gScore + \
+        #    self.distanceCost(successor, pose[:2])
+        tentative_fScore = tentative_gScore
         if sum([np.array_equal(successor, n[0]) for n in opened]) == 0:
           opened.append((successor, tentative_fScore))
         elif tentative_gScore >= gScore[successor[1], successor[0]]:

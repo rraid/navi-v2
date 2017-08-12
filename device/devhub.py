@@ -10,39 +10,39 @@ import time
 import struct
 import cv2
 import sys
+import math
 
 
 # Globals
-lidarReadings = []
 depthColumns = []
 colorImage = []
 depthImage = []
-sonarReadings = [0,0,0,0,0,0,0,0,0]
 latitude = None
 longitude = None
 startHeading = None
 startTimer = None
 heading = None
 
+## Left, Right
 motorVelocity = [0,0]
+
+## Y, X
+mapShape = [290,317]
+## Y, X
+mapBL = [40.52119,-74.462088]
+mapTR = [40.523815,-74.458337]
 
 arduinoMega = None
 arduinoUno = None
 rosReader = None
 
-def getSonarReadings():
-  return sonarReadings
-
 def getGPSReadings():
   values =  (latitude, longitude)
   if type(values) == type(None) or values[0] == None:
     return None
-  offset = np.array([-74.462292, 40.521202]) # lat, long
-  topRight = np.array([-74.457549,40.523734 ])
-  values = np.array(values) - offset
-  values = np.divide(values, topRight - offset)
-  values = np.multiply(values, np.array([968,681]))
-  return values
+  x = ((longitude - mapBL[1]) / (mapTR[1] - mapBL[1])) * mapShape[1]
+  y = ((latitude - mapBL[0]) / (mapTR[0] - mapBL[0])) * mapShape[0]  
+  return x,y
 
 def getLidarReadings():
   global lidarReadings
@@ -77,11 +77,8 @@ def setMotorVelocity(left, right):
   
 def getMotorVelocity():
   return motorVelocity
+  
 
-def lidarCallbackHandler(scan):
-  global lidarReadings
-  lidarReadings = np.array(scan.ranges)
-  # multiplying by to to convert to .5 meter
 
 class ArduinoListener(Thread):
 
@@ -111,9 +108,9 @@ class ArduinoListener(Thread):
       if buff[0] == '[':
         try:
           buff = eval(buff.strip())
-          (longitude,latitude,heading) = buff
+          (latitude,longitude,heading) = buff
         except:
-          print "error"
+          print "Failed Serial Read"
 
   def stop(self):
     self.stopstate = True
@@ -136,21 +133,11 @@ class ArduinoPublisher(Thread):
     left = motorVelocity[0]
     right = motorVelocity[1]
     print left,right
-    writeBuff = "["+ str(int(left)) + "," + str(int(right)) + "]\n"
+    writeBuff = "["+ str(int(left)*40) + "," + str(int(right)*40) + "]\n"
     self.arduino.write(writeBuff)
 
   def stop(self):
     self.stopstate = True
-
-class ROSListener(Thread):
-  def __init__(self):
-    print "Ros thread Started"
-    Thread.__init__(self)
-    ros.init_node("DeviceListener", anonymous=True)
-    ros.Subscriber("/scan", 
-        LaserScan, lidarCallbackHandler)
-  def run(self):
-    ros.spin() # blocks already
 
 def init():
   global arduinoMega

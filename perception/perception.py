@@ -10,14 +10,11 @@ import cv2
 import time
 from threading import Thread
 
-#Top four sonars from left to right followed by
-#bottom five sonars from left to right
-sonarAngle = np.array([-30, -5 , 5, 30, -45, -25, 0, 25, 45])
+## Y, X
+mapShape = [290,317]
 
-mapShape = [681, 968]
-
-_X = np.arange(-9.0, 9.5, 0.5)
-_Y = np.arange(-9.0, 9.5, 0.5)
+_X = np.arange(-10.0, 11.0, 1.0)
+_Y = np.arange(-10.0, 11.0, 1.0)
 _X, _Y = np.meshgrid(_X, _Y)
 GPSD = np.exp(-(np.multiply(_X, _X) + np.multiply(_Y, _Y)) / (2.0 * 2.5))
 GPSD /= np.sum(GPSD)
@@ -26,54 +23,6 @@ collisions = np.zeros(mapShape)
 
 def validDepth(d):
   return d != 0 and d != float("inf") and d != float("-inf") and not math.isnan(d)
-
-def getSonarDistribution(sonarValues):
-  size = len(sonarValues)
-  if size == 0:
-    return np.array([[]])
-  sonarDistx = np.zeros((9,100), dtype = np.int)
-  sonarDisty = np.zeros((9,100), dtype = np.int)
-  relativeAngle = np.linspace(-7.5,7.5,100)
-  sonarValues = [sonarValues[i] / 0.1 if validDepth(sonarValues[i]) else 0.0 for i in range(len(sonarValues))]
-  for i in range(9):
-    if sonarValues[i] == 0.0:
-      continue
-    for distribution in range(100):
-      sonarDistx[i,distribution] =int(math.cos(math.radians(sonarAngle[i] + relativeAngle[distribution]))* sonarValues[i])
-      sonarDisty[i,distribution] =int(math.sin(math.radians(sonarAngle[i] + relativeAngle[distribution]))* sonarValues[i])
-
-  sizex = int(abs(np.amax(sonarDistx)) + abs(np.amin(sonarDistx)))
-  sizey = int(abs(np.amax(sonarDisty)) + abs(np.amin(sonarDisty)))
-  if sizex == 0:
-      sizex = 1
-  if sizey== 0:
-      sizey = 1
-  if sizex > 0 and sizey>0:
-    sonarArray = np.zeros((sizex*2 + 1,sizey*2 + 1))
-  for sonar in range(9):
-    for i in range(100):
-
-        sonarArray[sizex + sonarDistx[sonar,i], sizey + sonarDisty[sonar,i]] += 0.1
-        #Changed from .01 to .1 because it shows better with agent.py
-  return sonarArray
-
-
-def getLidarDistribution(pts):
-  size = len(pts)
-  if size == 0:
-    return np.array([[]])
-  angleDist = np.linspace(135,-135,size) * math.pi / 180
-  pts = np.array([pts[i] / 0.1 if validDepth(pts[i]) else 0.0 for i in range(len(pts))])
-  c = np.cos(angleDist)
-  s = np.sin(angleDist)
-  
-  y = np.clip(np.multiply(s, pts).astype(int) + mapShape[1]/2,0,mapShape[1])
-  x = np.clip(np.multiply(c, pts).astype(int) + mapShape[0]/2,0,mapShape[0])
-
-  lidarArray = np.zeros((mapShape[0],mapShape[1]))
-  
-  lidarArray[x,y] = 1.0
-  return lidarArray
 
 def getZedDistribution(columns):
   size = len(columns)
@@ -119,7 +68,6 @@ def getGPSDistribution(pos):
   global GPSD
   global mapShape
   shape = mapShape
-  # the 0.5 is because of the map ratio
   try:
     x = int(round(pos[0]))
     y = int(round(pos[1]))
@@ -129,14 +77,13 @@ def getGPSDistribution(pos):
   if x < 0 or x >= shape[1] or y < 0 or y >= shape[0]:
     print("Error: GPS distribution out of bounds")
     return np.ones(shape) / float(np.prod(shape))
-
   distribution = np.zeros(shape[:2], dtype=np.float32)
-  miny = max(y - 18, 0)
-  maxy = min(y + 19, shape[0])
-  minx = max(x - 18, 0)
-  maxx = min(x + 19, shape[1])
+  miny = max(y - 10, 0)
+  maxy = min(y + 11, shape[0])
+  minx = max(x - 10, 0)
+  maxx = min(x + 11, shape[1])
   distribution[miny : maxy,
-               minx : maxx] = GPSD[miny-y+18:maxy-y+18,minx-x+18:maxx-x+18]
+               minx : maxx] = GPSD[miny-y+10:maxy-y+10,minx-x+10:maxx-x+10]
   return distribution 
 
 def getCompassDistribution(degreesFromNorth):

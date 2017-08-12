@@ -9,7 +9,7 @@ from scipy.misc import imresize
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
-  world = np.flipud(cv2.imread("../perception/pathmap.png", \
+  world = np.flipud(cv2.imread("../perception/pathmap_scaled.png", \
       cv2.IMREAD_GRAYSCALE) > 128).astype(np.float32)
 
   """
@@ -40,8 +40,8 @@ if __name__ == "__main__":
   #print world
 
   planner = planning.AStar(world)
-  start = (432, 153)
-  goal = (585, 550)
+  start = (130,51)
+  goal = (244,190)
   #start = (1, 1)
   #goal = (18, 18)
   #start = (16, 16)

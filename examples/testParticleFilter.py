@@ -8,6 +8,9 @@ import numpy as np
 import cv2
 import time
 
+[-74.462292, 40.521202]
+[-74
+
 if __name__ == "__main__":
   devhub.init()
   localizer = pfilter.ParticleFilter()

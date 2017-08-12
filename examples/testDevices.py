@@ -17,8 +17,6 @@ if __name__ == "__main__":
   print "Press Ctrl+C to stop"
   devhub.init()
   while not stopTest:
-    print "Sonar:", devhub.getSonarReadings()
-    print "Lidar:", devhub.getLidarReadings()
     print "Zed:", devhub.getZedReadings()
     print "GPS:", devhub.getGPSReadings()
     print "Heading", devhub.getCompassReadings()
