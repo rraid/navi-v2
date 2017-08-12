@@ -24,9 +24,11 @@ class AStar(Thread):
     self.xPotential = np.zeros(pathmap.shape[:2]) # flow map
     self.yPotential = np.zeros(pathmap.shape[:2])
     self.pathmap = pathmap
+    self.compute = False
 
   def setNextGoal(self, pose):
     self.nextGoal = pose
+    self.compute = True
 
   def reachedGoal(self, pose):
     return np.array_equal(pose[0:2], self.nextGoal[0:2])
@@ -121,9 +123,9 @@ class AStar(Thread):
 
   def setConstraintSpace(self, collisionSpace):
     # hack for the planner to plan faster
-    robotMask = np.ones((3, 3))
+    robotMask = np.ones((10, 10))
     collisionSpace = convolve2d(collisionSpace, robotMask, mode="same")
-    c_space = (1 - self.pathmap) + collisionSpace
+    c_space = collisionSpace
     # set up walls
     c_space[:,0] = 1.0
     c_space[:,c_space.shape[1]-1] = 1.0
@@ -141,9 +143,11 @@ class AStar(Thread):
       #pose = list(np.argwhere(distribution == np.amax(distribution))[0, :])
       # plan the flow map on that position
       #self.computePath(pose)
-      if type(self.nextGoal) != type(None) and type(self.c_space) != type(None):
-        self.computePath(np.array([0, 0, 0]))
-        print "[PLANNING] process time:", time.time() - currTime
+      if self.compute:
+        if type(self.nextGoal) != type(None) and type(self.c_space) != type(None):
+          self.computePath(np.array([0, 0, 0]))
+          print "[PLANNING] process time:", time.time() - currTime
+          compute = False
 
   def stop(self):
     self.stopstate = True

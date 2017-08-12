@@ -26,7 +26,8 @@ while True:
   t = t.reshape((t.shape[0] / 3, 3))
 
   mesh = projectedMesh.project3DMeshTo2DGrid(v, t, (x, y))
-  cv2.imshow("mesh", (mesh) * 255)
+  print mesh.shape
+  cv2.imshow("mesh", np.flipud(mesh) * 255)
   cv2.waitKey(10)
   """
 import sys

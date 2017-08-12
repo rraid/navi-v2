@@ -11,7 +11,7 @@ import time
 from threading import Thread
 
 ## Y, X
-mapShape = [290,317]
+mapShape = [290,315]
 
 _X = np.arange(-10.0, 11.0, 1.0)
 _Y = np.arange(-10.0, 11.0, 1.0)

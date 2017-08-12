@@ -27,7 +27,7 @@ heading = None
 motorVelocity = [0,0]
 
 ## Y, X
-mapShape = [290,317]
+mapShape = [290,315]
 ## Y, X
 mapBL = [40.52119,-74.462088]
 mapTR = [40.523815,-74.458337]
@@ -60,19 +60,14 @@ def getZedReadings():
 
 def getCompassReadings():
   global heading
-  global startHeading
-  global startTimer
   if heading == None:
     return None
-  if startTimer == None:
-    startTimer = time.time()
-  if startHeading == None or time.time() - startTimer < 15.0:
-    startHeading = heading
-    return None
-  return startHeading - heading
+  return (heading + 24) % 360
   
 def setMotorVelocity(left, right):
   global motorVelocity
+  left = np.clip(left,-1.0,1.0)
+  right = np.clip(right,-1.0,1.0)
   motorVelocity = [left,right]
   
 def getMotorVelocity():
@@ -132,8 +127,8 @@ class ArduinoPublisher(Thread):
     global motorVelocity
     left = motorVelocity[0]
     right = motorVelocity[1]
-    print left,right
-    writeBuff = "["+ str(int(left)*40) + "," + str(int(right)*40) + "]\n"
+    #print left,right
+    writeBuff = "["+ str(int(left*40)) + "," + str(int(right*40)) + "]\n"
     self.arduino.write(writeBuff)
 
   def stop(self):

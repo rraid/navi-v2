@@ -2,10 +2,10 @@ import numpy as np
 from skimage.draw import line_aa
 import matplotlib.pyplot as plt
 
-def project3DMeshTo2DGrid(vertices, triangles, pose, shape=(400, 400)):
+def project3DMeshTo2DGrid(vertices, triangles, pose, shape=(200, 200)):
   z = vertices[:,2]
   vertices = (np.array(vertices)[:,:2] - np.array(pose))
-  z = np.reshape(np.multiply(z >= -1.0, z <= 0.5), (z.shape[0], 1))
+  z = np.reshape(np.multiply(z >= -1.0, z <= 0.1), (z.shape[0], 1))
   vertices = np.multiply(vertices, z)
   vertices *= 10.0 # scale factor from meters to decimeters
   vertices += np.array([shape[0] / 2, shape[1] / 2])
@@ -25,4 +25,4 @@ def project3DMeshTo2DGrid(vertices, triangles, pose, shape=(400, 400)):
   #  grid[rr, cc] = val * 1.0
   
 
-  return grid
+  return np.flipud(grid)

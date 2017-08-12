@@ -44,7 +44,7 @@ def getPose():
     return None
   else:
     pose = np.ctypeslib.as_array(pose_pointer, shape = (1,6))
-    return pose
+    return pose[0,:]
  
 def getMeshSizes():
   vSize_pointer = ctypes.cast((ctypes.c_int*1)(), ctypes.POINTER(ctypes.c_int))
