@@ -45,13 +45,14 @@ void loop()
 {
   getGPS();
   //getsonar_value();
-  getCompass();
+  //getCompass();
   writeSerial();
 }
 
 void getGPS() {
-  while (ss.available());
+  while (ss.available()){
     gps.encode(ss.read());
+  }
   if (gps.location.isValid()) {
     latitude = gps.location.lat();
     longitude = gps.location.lng();
@@ -68,12 +69,6 @@ void writeSerial()
 {
   memset(write_buffer, '\0', BUFSIZE);
   strcat(write_buffer, "[");
-  /*for (int x = 0; x < SONAR_NUM; x++)
-  {
-    dtostrf(sonar_value[x] / 50.0 , 20, 10, ftos);
-    strcat(write_buffer, ftos);
-    strcat(write_buffer, ",");
-  }*/
   dtostrf(latitude, 20, 10, ftos);
   strcat(write_buffer, ftos);
   strcat(write_buffer, ",");
