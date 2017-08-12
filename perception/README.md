@@ -8,3 +8,7 @@ sudo ldconfig
 Now you should have `libchili.so` in the working directory. There currently is
 no option to install it globally, since its a hack, but you can certainly make
 one if you wish to do so.
+
+
+Website used to find distances between coordinate points
+http://www.movable-type.co.uk/scripts/latlong.html
