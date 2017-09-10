@@ -1,3 +1,0 @@
-/home/nvidia/navi-v2/device/build/CMakeFiles/rebuild_cache.dir
-/home/nvidia/navi-v2/device/build/CMakeFiles/edit_cache.dir
-/home/nvidia/navi-v2/device/build/CMakeFiles/zed.dir
