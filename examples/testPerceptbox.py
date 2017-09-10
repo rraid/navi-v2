@@ -10,44 +10,44 @@ def getGridImg():
 
 def getGPS():
   readings = [
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0) ]
+      [0, 0],
+      [0, 0],
+      [0, 0],
+      [0, 0],
+      [0, 0],
+      [0, 0],
+      [0, 0],
+      [0, 0],
+      [0, 0],
+      [0, 0] ]
   return readings[timestep]
 
 def getCompass():
   readings = [
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0) ]
+      [0],
+      [0],
+      [0],
+      [0],
+      [0],
+      [0],
+      [0],
+      [0],
+      [0],
+      [0] ]
   return readings[timestep]
 
 def getZed():
   readings = [
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0),
-      (0, 0) ]
+      (0, 0, 0),
+      (0, 0, 0),
+      (0, 0, 0),
+      (0, 0, 0),
+      (0, 0, 0),
+      (0, 0, 0),
+      (0, 0, 0),
+      (0, 0, 0),
+      (0, 0, 0),
+      (0, 0, 0) ]
   return readings[timestep]
 
 if __name__ == "__main__":
@@ -63,8 +63,7 @@ if __name__ == "__main__":
   # now that the box has been anchored, we can attempt to test out the localizer
   while True:
 
-    print(box.getPose())
+    # print(box.getPose())
 
-    if timestep < 9:
-      timestep += 1
+    timestep = (timestep + 1) % 10
 

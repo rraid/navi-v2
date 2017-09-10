@@ -1,4 +1,4 @@
-import sys
+import sys, math
 sys.path.append("../device/")
 import perception
 import devhub
@@ -60,17 +60,21 @@ class PerceptBox(Thread):
     self.calibratedPose = np.array([0, 0, 0], dtype=np.float32)
 
   def update(self):
+    print('updating')
     """ Update the current pose based on the buffers of stored data
     """
     # update the values inside the buffers
+    # print(self.gpsCallback(), self.compassCallback())
     self.globalPose = np.concatenate(
-        [self.gpsCallback(), self.compassCallback()], axis=1)
+        [self.gpsCallback(), self.compassCallback()], axis=0)
+    # print(np.reshape(self.globalPose, (1, 3)))
+    # print(self.globalBuffer.shape)
     self.localPose = self.stereoPoseCallback()
     if self.globalPose.shape[0] < self.bufmax:
-      self.globalBuffer = np.concatenate(self.globalBuffer,
-          np.reshape(self.globalPose, (1, 3)))
-      self.localBuffer = np.concatenate(self.localBuffer,
-          np.reshape(self.localPose, (1, 3)))
+      self.globalBuffer = np.concatenate((self.globalBuffer,
+          np.reshape(self.globalPose, (1, 3))))
+      self.localBuffer = np.concatenate((self.localBuffer,
+          np.reshape(self.localPose, (1, 3))))
     else:
       self.globalBuffer[self.frameid, :] = self.globalPose
       self.localBuffer[self.frameid, :] = self.localPose
@@ -95,11 +99,14 @@ class PerceptBox(Thread):
       newpos = np.dot(self.localPose[:2], np.array([[c, -s], [s, c]]))
 
     # use the transform to estimate the calibrated pose
+    # print(newpos[self.frameid:])
+    # print(self.localBuffer)
     self.calibratedPose = np.concatenate(
-        [newpos[self.frameid, :], [self.localBuffer[2] + thetaOffset]])
+        (newpos[self.frameid:], [self.localBuffer[0][2] + thetaOffset]))
     self.frameid = (self.frameid + 1) % self.bufmax
 
   def run(self):
+    print('running')
     while True:
       self.update()
 

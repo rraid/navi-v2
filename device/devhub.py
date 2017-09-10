@@ -1,11 +1,11 @@
 import numpy as np
 import serial
-import rospy as ros
-from sensor_msgs.msg import Image
-from sensor_msgs.msg import LaserScan
+# import rospy as ros
+# from sensor_msgs.msg import Image
+# from sensor_msgs.msg import LaserScan
 from threading import Thread, Event, Lock
-from cv_bridge import CvBridge
-import zed
+# from cv_bridge import CvBridge
+# import zed
 import time
 import struct
 import cv2
