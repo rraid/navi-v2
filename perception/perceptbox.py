@@ -15,14 +15,12 @@ class PerceptBox(Thread):
   Note that this is the first version of the box which uses a mean-shifted
   correlation technique to connect the local and global frames.
   """
-  def __init__(self, gridimg, initial_pose=None,
+  def __init__(self, initial_pose=None,
       gpsCallback=None,
       compassCallback=None,
       stereoPoseCallback=None):
     """ Constructor
     Arguments:
-    - gridimg: numpy array of dimensionality (rows, cols)
-    - initial_pose: (x, y, theta) initial pose of the robot
     - gpsCallback: a function which returns the gps reading (x, y)
     - compassCallback: a function which returns the compass reading theta
     - stereoPoseCallback: a function which returns (x, y, theta)
@@ -32,14 +30,6 @@ class PerceptBox(Thread):
     assert(type(stereoPoseCallback) != type(None))
 
     Thread.__init__(self)
-    # shape = (y, x)
-    self.gridimg = gridimg
-    if type(initial_pose) == type(None):
-      # (x, y, theta)
-      self.initial_pose = (self.gridimg.shape[1] / 2, \
-          self.gridimg.shape[0] / 2, 0)
-    else:
-      self.initial_pose = initial_pose
 
     # start by defining a buffer to store the GPS and the robot
     self.autoCalibrate = True
@@ -57,18 +47,15 @@ class PerceptBox(Thread):
     self.stereoPoseCallback = stereoPoseCallback
     self.globalPose = None
     self.localPose = None
-    self.calibratedPose = np.array([0, 0, 0], dtype=np.float32)
 
   def update(self):
     print('updating')
     """ Update the current pose based on the buffers of stored data
     """
     # update the values inside the buffers
-    # print(self.gpsCallback(), self.compassCallback())
+    # combine GPS and compass into [x, y, theta]
     self.globalPose = np.concatenate(
         [self.gpsCallback(), self.compassCallback()], axis=0)
-    # print(np.reshape(self.globalPose, (1, 3)))
-    # print(self.globalBuffer.shape)
     self.localPose = self.stereoPoseCallback()
     if self.globalPose.shape[0] < self.bufmax:
       self.globalBuffer = np.concatenate((self.globalBuffer,
@@ -79,30 +66,16 @@ class PerceptBox(Thread):
       self.globalBuffer[self.frameid, :] = self.globalPose
       self.localBuffer[self.frameid, :] = self.localPose
 
-    # assume that the compass is always right (later on use sin and cos rules)
-    if self.autoCalibrate:
-      thetaOffset = np.mean(self.globalBuffer[:,2:] - self.localBuffer[:,2:])
-      # use the transformation to obtain the offset
-      s = math.sin(math.radians(thetaOffset))
-      c = math.cos(math.radians(thetaOffset))
-      newpos = np.dot(self.localBuffer[:,:2], np.array([[c, -s], [s, c]]))
-      # grab the offset from the matrix transform
-      posOffset = np.mean(self.globalBuffer[:,:2] - newpos)
-      self.transform[:2] = posOffset
-      self.transform[2] = thetaOffset
-    else:
-      # set the offsets to the old values
-      thetaOffset = self.transform[2]
-      posOffset = self.transform[:2]
-      s = math.sin(math.radians(thetaOffset))
-      c = math.cos(math.radians(thetaOffset))
-      newpos = np.dot(self.localPose[:2], np.array([[c, -s], [s, c]]))
-
-    # use the transform to estimate the calibrated pose
-    # print(newpos[self.frameid:])
-    # print(self.localBuffer)
-    self.calibratedPose = np.concatenate(
-        (newpos[self.frameid:], [self.localBuffer[0][2] + thetaOffset]))
+    thetaOffset = np.mean(self.globalBuffer[:,2:] - self.localBuffer[:,2:])
+    # use the transformation to obtain the offset
+    s = math.sin(math.radians(thetaOffset))
+    c = math.cos(math.radians(thetaOffset))
+    newpos = np.dot(self.localBuffer[:,:2], np.array([[c, -s], [s, c]]))
+    # grab the offset from the matrix transform
+    posOffset = np.mean(self.globalBuffer[:,:2] - newpos)
+    self.transform[:2] = posOffset
+    self.transform[2] = thetaOffset
+    
     self.frameid = (self.frameid + 1) % self.bufmax
 
   def run(self):
@@ -115,14 +88,9 @@ class PerceptBox(Thread):
     Returns:
     - pose (x, y, theta)
     """
+    # self.calibratedPose = np.concatenate(
+    #     (newpos[self.frameid:], [self.localBuffer[0][2] + thetaOffset]))
     return np.copy(self.calibratedPose)
-
-  def getMap(self, radius=10.0, scaling=0.1):
-    """
-    Get the distribution of the map, given a radius
-    """
-    # for now just test the localizer to see if it works
-    pass
 
   def anchor(self):
     """ Turn off automatic calibration and use the current set of readings for
