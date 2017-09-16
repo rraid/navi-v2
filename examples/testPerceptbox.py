@@ -14,9 +14,6 @@ if __name__ == "__main__":
       gpsCallback=getGPSReadings,
       compassCallback=getCompassReadings,
       stereoPoseCallback=getZedReadings)
-
-  # now that all the callbacks are set, let's create an anchor for the robot to
-  # anchor the position
   box.start()
 
   # now that the box has been anchored, we can attempt to test out the localizer
