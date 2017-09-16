@@ -2,68 +2,31 @@ import sys
 sys.path.append("../perception/")
 import perceptbox
 import numpy as np
-
-timestep = 0
-
-def getGridImg():
-  return np.ones((400, 400))
-
-def getGPS():
-  readings = [
-      [0, 0],
-      [0, 0],
-      [0, 0],
-      [0, 0],
-      [0, 0],
-      [0, 0],
-      [0, 0],
-      [0, 0],
-      [0, 0],
-      [0, 0] ]
-  return readings[timestep]
-
-def getCompass():
-  readings = [
-      [0],
-      [0],
-      [0],
-      [0],
-      [0],
-      [0],
-      [0],
-      [0],
-      [0],
-      [0] ]
-  return readings[timestep]
-
-def getZed():
-  readings = [
-      (0, 0, 0),
-      (0, 0, 0),
-      (0, 0, 0),
-      (0, 0, 0),
-      (0, 0, 0),
-      (0, 0, 0),
-      (0, 0, 0),
-      (0, 0, 0),
-      (0, 0, 0),
-      (0, 0, 0) ]
-  return readings[timestep]
+sys.path.append("../device/")
+import devhub
+import cv2
 
 if __name__ == "__main__":
+  devhub.init()
+  grid = np.flipud(cv2.imread("../perception/pathmap_scaled.png", cv2.IMREAD_GRAYSCALE) / 2)
   # create a perception box to be used on its own
-  box = perceptbox.PerceptBox(getGridImg(),
-      gpsCallback=getGPS, compassCallback=getCompass, stereoPoseCallback=getZed)
+  box = perceptbox.PerceptBox(
+      gpsCallback=getGPSReadings,
+      compassCallback=getCompassReadings,
+      stereoPoseCallback=getZedReadings)
 
   # now that all the callbacks are set, let's create an anchor for the robot to
   # anchor the position
-  box.anchor()
   box.start()
 
   # now that the box has been anchored, we can attempt to test out the localizer
   while True:
+    pose = box.getPose()
+    print(pose)
 
-    # print(box.getPose())
-
-    timestep = (timestep + 1) % 10
-
+    position = pose[:2]
+    angle = pose[2]
+    
+    img = perception.getGPSDistribution(position)
+    cv2.imshow("Position", np.flipud(img + grid) * 255)
+    cv2.waitKey(10)
