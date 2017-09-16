@@ -52,18 +52,16 @@ def getZed():
 
 if __name__ == "__main__":
   # create a perception box to be used on its own
-  box = perceptbox.PerceptBox(getGridImg(),
+  box = perceptbox.PerceptBox(
       gpsCallback=getGPS, compassCallback=getCompass, stereoPoseCallback=getZed)
 
-  # now that all the callbacks are set, let's create an anchor for the robot to
-  # anchor the position
-  box.anchor()
   box.start()
 
   # now that the box has been anchored, we can attempt to test out the localizer
   while True:
 
-    # print(box.getPose())
+    print 'pose'
+    print(box.getPose())
 
     timestep = (timestep + 1) % 10
 
