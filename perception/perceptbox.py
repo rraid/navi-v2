@@ -15,10 +15,7 @@ class PerceptBox(Thread):
   Note that this is the first version of the box which uses a mean-shifted
   correlation technique to connect the local and global frames.
   """
-  def __init__(self, initial_pose=None,
-      gpsCallback=None,
-      compassCallback=None,
-      stereoPoseCallback=None):
+  def __init__(self, gpsCallback=None, compassCallback=None, stereoPoseCallback=None):
     """ Constructor
     Arguments:
     - gpsCallback: a function which returns the gps reading (x, y)
