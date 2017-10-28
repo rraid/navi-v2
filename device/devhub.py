@@ -4,8 +4,7 @@ import serial
 # from sensor_msgs.msg import Image
 # from sensor_msgs.msg import LaserScan
 from threading import Thread, Event, Lock
-# from cv_bridge import CvBridge
-# import zed
+import zed
 import time
 import struct
 import cv2
@@ -51,7 +50,7 @@ def getLidarReadings():
 def getZedReadings():
   global depthColumns
   depth_image = zed.grabDepthFrame()
-  if type(depth_image) == None:
+  if type(depth_image) == type(None):
     return None
   dataMid = depth_image.shape[0]/2
   subImage = depth_image[dataMid-50:dataMid+50,:]
@@ -138,10 +137,10 @@ def init():
   global arduinoMega
   global arduinoUno
   zed.open()
-  arduinoMega = ArduinoListener("ttyACM1")
+  arduinoMega = ArduinoListener("ttyACM0")
   arduinoMega.start()
-  arduinoUno = ArduinoPublisher("ttyACM0")
-  arduinoUno.start()
+  #arduinoUno = ArduinoPublisher("ttyACM0")
+  #arduinoUno.start()
   #rosReader = ROSListener()
   #rosReader.start()
 
@@ -150,8 +149,8 @@ def stop():
   global arduinoUno
   arduinoMega.stop()
   arduinoMega.join()
-  arduinoUno.stop()
-  arduinoUno.join()
+  #arduinoUno.stop()
+  #arduinoUno.join()
   zed.close()
   #ros.signal_shutdown("Ending Process")
   time.sleep(1)

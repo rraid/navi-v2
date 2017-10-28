@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 import sys
 sys.path.append("../perception/")
 import perceptbox
@@ -5,6 +6,7 @@ import numpy as np
 sys.path.append("../device/")
 import devhub
 import cv2
+import pickle
 
 if __name__ == "__main__":
   devhub.init()
@@ -26,4 +28,11 @@ if __name__ == "__main__":
     
     img = perception.getGPSDistribution(position)
     cv2.imshow("Position", np.flipud(img + grid) * 255)
-    cv2.waitKey(10)
+    if (cv2.waitKey(10) == 27):
+      break
+
+  # save everything
+  with open("global.pkl", "wb") as fp:
+    pickle.dump(box.globalBuffer, fp)
+  with open("local.pkl", "wb") as fp:
+    pickle.dump(box.localBuffer, fp)

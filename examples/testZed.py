@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 import sys
 sys.path.append("../device/")
 import zed
@@ -15,6 +16,6 @@ while True:
     continue
 
   cv2.imshow("zed depth", np.clip(frame / 10.0, 0.0, 1.0))
-  cv2.waitKey(10)
+  cv2.waitKey(1)
 
 zed.close()
