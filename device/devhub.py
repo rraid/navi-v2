@@ -18,8 +18,6 @@ colorImage = []
 depthImage = []
 latitude = None
 longitude = None
-startHeading = None
-startTimer = None
 heading = None
 
 ## Left, Right
@@ -89,7 +87,6 @@ class ArduinoListener(Thread):
       #time.sleep(0.1) # 10 MHz refresh
 
   def readSerial(self):
-    #global sonarReadings
     global latitude
     global longitude
     global heading
