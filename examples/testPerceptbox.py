@@ -13,9 +13,9 @@ if __name__ == "__main__":
   grid = np.flipud(cv2.imread("../perception/pathmap_scaled.png", cv2.IMREAD_GRAYSCALE) / 2)
   # create a perception box to be used on its own
   box = perceptbox.PerceptBox(
-      gpsCallback=getGPSReadings,
-      compassCallback=getCompassReadings,
-      stereoPoseCallback=getZedReadings)
+      gpsCallback=perception.getGPSReadings,
+      compassCallback=perception.getCompassReadings,
+      stereoPoseCallback=perception.getZedReadings)
   box.start()
 
   # now that the box has been anchored, we can attempt to test out the localizer
