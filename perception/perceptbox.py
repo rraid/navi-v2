@@ -51,6 +51,8 @@ class PerceptBox(Thread):
 
     self.globalBuffer[self.frameid, :] = self.globalPose
     self.localBuffer[self.frameid, :] = self.localPose
+
+    cv2.imwrite("image/" + str(self.frameid) + ".png", devhub.depthImage)
     
     self.frameid = (self.frameid + 1) % self.bufmax
 

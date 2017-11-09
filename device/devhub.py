@@ -49,11 +49,12 @@ def getLidarReadings():
 
 def getZedReadings():
   global depthColumns
-  depth_image = zed.grabDepthFrame()
-  if type(depth_image) == type(None):
+  global depthImage
+  depthImage = zed.grabDepthFrame()
+  if type(depthImage) == type(None):
     return None
-  dataMid = depth_image.shape[0]/2
-  subImage = depth_image[dataMid-50:dataMid+50,:]
+  dataMid = depthImage.shape[0]/2
+  subImage = depthImage[dataMid-50:dataMid+50,:]
   depthColumns = np.amin(subImage, axis=0)
   return depthColumns
 
