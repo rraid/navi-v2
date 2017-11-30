@@ -1,38 +1,60 @@
 #!/usr/bin/env python2
 import sys
 sys.path.append("../perception/")
-import perceptbox
 import numpy as np
 sys.path.append("../device/")
 import devhub
 import cv2
 import pickle
+import signal
+
+mat = None
+stopTest = False
+
+buff = []
+
+def stopsigHandler(signal, frame):
+  global buff
+  
+  # save everything
+  with open("dataSet/global.pkl", "wb") as fp:
+    pickle.dump(buff, fp)
+  stopTest = True
+  devhub.stop()
+  sys.exit(0)
 
 if __name__ == "__main__":
+
+  global buff
+  global mat
+  global stopTest
+  
+  
+  signal.signal(signal.SIGINT, stopsigHandler)
+  print("Press Ctrl+C to stop")
   devhub.init()
-  grid = np.flipud(cv2.imread("../perception/pathmap_scaled.png", cv2.IMREAD_GRAYSCALE) / 2)
-  # create a perception box to be used on its own
-  box = perceptbox.PerceptBox(
-      gpsCallback=perception.getGPSReadings,
-      compassCallback=perception.getCompassReadings,
-      stereoPoseCallback=perception.getZedReadings)
-  box.start()
 
   # now that the box has been anchored, we can attempt to test out the localizer
-  while True:
-    pose = box.getPose()
-    print(pose)
+  while not stopTest:
 
-    position = pose[:2]
-    angle = pose[2]
+    mat = devhub.getZedReadings()
+    if type(mat) == type(None):
+      continue
+    if type(mat) != np.ndarray:
+      time.sleep(0.01)
+      continue
+    cv2.imshow("zed depth", mat)
+    cv2.waitKey(1)
     
-    img = perception.getGPSDistribution(position)
-    cv2.imshow("Position", np.flipud(img + grid) * 255)
-    if (cv2.waitKey(10) == 27):
-      break
+    idx = len(buff)
+    buff.append("zedFrame" + str(idx))
+    np.save("dataSet/zedFrame" + str(idx),mat)
+    
+    
+    #gps
+    #compass
+    #zedPose
+    
 
-  # save everything
-  with open("global.pkl", "wb") as fp:
-    pickle.dump(box.globalBuffer, fp)
-  with open("local.pkl", "wb") as fp:
-    pickle.dump(box.localBuffer, fp)
+
+
