@@ -10,8 +10,7 @@ void zed_close();
 void zed_run();
 bool grabDepthFrame(void*);
 bool getPose(void*);
-bool getMeshSizes(int *,int*);
-bool getMeshData(float*,int*);
+
 }
 #endif
 
