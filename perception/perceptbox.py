@@ -73,9 +73,11 @@ class PerceptBox(Thread):
     s = math.sin(math.radians(thetaOffset))
     c = math.cos(math.radians(thetaOffset))
     newpos = np.dot(self.localBuffer[:,:2], np.array([[c, -s], [s, c]]))
-    posOffset = [np.mean(self.globalBuffer[:,0] - newpos[:,0]), np.mean(self.globalBuffer[:,1] - newpos[:,1])]
+    posOffset = [np.mean(self.globalBuffer[:,0] - newpos[:,0]),
+                 np.mean(self.globalBuffer[:,1] - newpos[:,1])]
 
-    return np.concatenate((newpos[self.frameid] + posOffset, [self.localBuffer[0][2] + thetaOffset]))
+    return np.concatenate((newpos[self.frameid] + posOffset,
+      [self.localBuffer[0][2] + thetaOffset]))
 
   ## Callbacks ##
   def assignGPSCallback(self, fn):

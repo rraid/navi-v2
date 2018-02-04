@@ -44,9 +44,6 @@ sl::Mat depth_image;
 sl::Pose pose;
 std::vector<size_t> cl;
 
-sl::Mesh mesh;      // sl::Mesh to hold the mesh generated during spatial mapping
-sl::SpatialMappingParameters spatial_mapping_params;
-sl::MeshFilterParameters filter_params;
 sl::TRACKING_STATE tracking_state;
 
 sl::Transform camera_projection;
@@ -57,7 +54,6 @@ std::thread zed_callback;
 bool mapping_is_started = false;
 std::chrono::high_resolution_clock::time_point t_last;
 
-bool saveMesh = false;
 bool quit = false;
 bool zedGrab = false;
 
@@ -86,23 +82,8 @@ bool zed_open() {
   trackingParameters.enable_spatial_memory = true;     // Enable Spatial memory
   //printf("Initalized tracking");
   
-  // Configure Spatial Mapping and filtering parameters
-  spatial_mapping_params.range_meter.second = sl::SpatialMappingParameters::get(sl::SpatialMappingParameters::RANGE_FAR);
-  spatial_mapping_params.resolution_meter = sl::SpatialMappingParameters::get(sl::SpatialMappingParameters::RESOLUTION_LOW);
-  //printf("Initalized mapping");
-  
-  filter_params.set(sl::MeshFilterParameters::FILTER_LOW);
-  //printf("Initalized filter");
-  
-  // Start motion tracking
-  
   zed.enableTracking(trackingParameters);
   //printf("Enabled Tracking");
-  
-  //mesh.clear();
-  zed.enableSpatialMapping(spatial_mapping_params);
-  t_last = std::chrono::high_resolution_clock::now();
-  mapping_is_started = true;
   
   zed_callback = std::thread(zed_run);
   //printf("Started Thread");
@@ -129,20 +110,6 @@ void zed_run(){
         // Apply the transformation
         pose.pose_data = Transform::inverse(transform_) * pose.pose_data * transform_;
       }
-     
-      if (mapping_is_started) {
-        // Compute elapse time since the last call of sl::Camera::requestMeshAsync()
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t_last).count();
-        // Ask for a mesh update if 500ms have spend since last request
-        if (duration > 500) {
-          zed.requestMeshAsync();
-          t_last = std::chrono::high_resolution_clock::now();
-        }
-        if (zed.getMeshRequestStatusAsync() == sl::SUCCESS) {
-          // Get the current mesh generated
-          zed.retrieveMeshAsync(mesh);
-        }
-      }
     }
     else sl::sleep_ms(1);
   }
@@ -158,16 +125,7 @@ void zed_close() {
   printf("Quitting C++\n");
   quit = true;
   zed_callback.join();
-  
-  mapping_is_started = false;
-  
-  if(saveMesh){
-    sl::Mesh wholeMesh;
-    zed.extractWholeMesh(wholeMesh);
-    wholeMesh.filter(filter_params, 0);
-    //std::string saveName = getDir() + "mesh_gen.obj";
-    //wholeMesh.save(saveName.c_str());
-  }
+
   zed.close();
 }
 
@@ -186,62 +144,6 @@ bool getPose(void* poseGet){
   ((float*)poseGet)[3] = rotation.x;
   ((float*)poseGet)[4] = rotation.y;
   ((float*)poseGet)[5] = rotation.z;
-  return true;
-}
-sl::Mesh meshCopy;
-bool getMeshSizes(int* vertices, int* triangles){
-  if (zedGrab != SUCCESS){
-    sl::sleep_ms(1);
-    return false;
-  }
-  sl::CameraParameters camLeft = zed.getCameraInformation().calibration_parameters.left_cam;
-  camera_projection(0, 0) = 1.0f / tanf(camLeft.h_fov * M_PI / 180.f * 0.5f);
-  camera_projection(1, 1) = 1.0f / tanf(camLeft.v_fov * M_PI / 180.f * 0.5f);
-  float znear = 0.001f;
-  float zfar = 100.f;
-  camera_projection(2, 2) = -(zfar + znear) / (zfar - znear);
-  camera_projection(2, 3) = -(2.f * zfar * znear) / (zfar - znear);
-  camera_projection(3, 2) = -1.f;
-  camera_projection(0, 2) = (camLeft.image_size.width - 2.f * camLeft.cx) / camLeft.image_size.width;
-  camera_projection(1, 2) = (-1.f * camLeft.image_size.height + 2.f * camLeft.cy) / camLeft.image_size.height;
-  camera_projection(3, 3) = 0.f;
-  cl = mesh.getSurroundingList(camera_projection,10.0f);
-  
-  meshCopy = mesh;
-  
-  int vertSize = 0;
-  int triSize = 0;
-  for(auto &i: cl){
-    vertSize += meshCopy[i].vertices.size() * 3;
-    triSize += meshCopy[i].triangles.size() * 3;
-    //Multiply by 3 to account for x, y, z
-  }
-  *vertices = vertSize;
-  *triangles = triSize;
-  return true;
-}
-
-bool getMeshData(float* vertices, int* triangles){
-  if (zedGrab != SUCCESS){
-    sl::sleep_ms(1);
-    return false;
-  }
-  int vCount = 0;
-  int tCount = 0;
-  for(size_t &i: cl ){
-    for(size_t j = 0; j < meshCopy[i].vertices.size(); j++){
-      vertices[vCount]   = meshCopy[i].vertices[j][0];
-      vertices[vCount+1] = meshCopy[i].vertices[j][1];
-      vertices[vCount+2] = meshCopy[i].vertices[j][2];
-      vCount +=3;
-    }
-    for(size_t j = 0; j < meshCopy[i].triangles.size(); j++){
-      triangles[tCount]   = meshCopy[i].triangles[j][0];
-      triangles[tCount+1] = meshCopy[i].triangles[j][1];
-      triangles[tCount+2] = meshCopy[i].triangles[j][2];
-      tCount +=3;
-    }
-  }
   return true;
 }
 
