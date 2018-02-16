@@ -41,6 +41,7 @@ using namespace sl;
 //// Create ZED object (camera, callback, images)
 sl::Camera zed;
 sl::Mat depth_image;
+
 sl::Pose pose;
 std::vector<size_t> cl;
 
@@ -157,3 +158,18 @@ bool grabDepthFrame(void* dst) {
       4 * depth_image.getHeight() * depth_image.getWidth());
   return true;
 }
+
+bool grabFrame(void* dst){
+sl::Mat zed_image;
+if (zed.grab() == SUCCESS) {
+    // Retrieve the left image in sl::Mat
+    // The cv::Mat is automatically updated
+    zed.retrieveImage(zed_image, VIEW_LEFT);
+    // Display the left image from the cv::Mat object
+    memcpy(dst, (void *)zed_image.getPtr<sl::float1>(sl::MEM_CPU),
+      4 * depth_image.getHeight() * depth_image.getWidth());
+    return true;
+  }
+    return false;
+}
+

@@ -13,6 +13,7 @@ import math
 depthColumns = []
 colorImage = []
 depthImage = []
+image = []
 latitude = None
 longitude = None
 heading = None
@@ -52,6 +53,11 @@ def getZedReadings():
   subImage = depthImage[dataMid-50:dataMid+50,:]
   depthColumns = np.amin(subImage, axis=0)
   return depthImage
+
+def getZedFrame():
+  global image
+  image = zed.grabFrame()
+  return image
 
 def getZedPose():
   return zed.getPose()

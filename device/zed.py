@@ -9,6 +9,8 @@ libzed.zed_close.resType = None
 libzed.zed_run.resType = None
 libzed.grabDepthFrame.resType = ctypes.c_bool
 libzed.grabDepthFrame.argTypes = [ctypes.c_void_p]
+libzed.grabFrame.resType = ctypes.c_bool
+libzed.grabFrame.argTypes = [ctypes.c_void_p]
 libzed.getPose.resType = ctypes.c_bool
 libzed.getPose.argTypes = [ctypes.c_void_p]
 
@@ -42,3 +44,13 @@ def getPose():
     pose = np.ctypeslib.as_array(pose_pointer, shape = (1,6))
     return pose[0,:]
 
+
+def grabFrame():
+  image_pointer = ctypes.cast((ctypes.c_float * 720 * 1280)(), \
+      ctypes.POINTER(ctypes.c_float))
+  res = libzed.grabFrame(image_pointer)
+  if res == False:
+    return None
+  else:
+    image = np.ctypeslib.as_array(image_pointer, shape=(720, 1280))
+  return image

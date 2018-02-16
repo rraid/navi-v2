@@ -22,10 +22,12 @@ if __name__ == "__main__":
 
   while not stopTest:
 
-    frame = devhub.getZedReadings()
+    frame = devhub.getZedFrame()
     if type(frame) == type(None):
       time.sleep(0.01)
       continue
-
-    cv2.imshow("zed depth", np.clip(frame / 10.0, 0.0, 1.0))
+    
+    cv2.imshow("zed depth", frame)  
+    
+    #cv2.imshow("zed depth", np.clip(frame / 10.0, 0.0, 1.0))
     cv2.waitKey(1)

@@ -10,7 +10,7 @@ void zed_close();
 void zed_run();
 bool grabDepthFrame(void*);
 bool getPose(void*);
-
+bool grabFrame(void*);
 }
 #endif
 
